@@ -1,7 +1,7 @@
 Package: pl.legacyios.rozklad
 Name: Rozklad
 Depends: firmware (>= 6.0)
-Version: 0.3.0
+Version: 1.0.0
 Architecture: iphoneos-arm
 Description: Rozklad jazdy offline: autobus, tramwaj, pociag, metro
 Maintainer: nazar0vsky-slam0
