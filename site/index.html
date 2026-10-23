@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rozkład – wybór przystanków</title>
+<link rel="icon" href="icon.png"><link rel="apple-touch-icon" href="icon.png">
+<style>
+body{margin:0;font:16px/1.4 "Helvetica Neue",Helvetica,Arial,sans-serif;color:#2b2b2b;background-color:#d8d3c5;-webkit-text-size-adjust:100%;background-image:-webkit-repeating-linear-gradient(45deg,rgba(255,255,255,.22) 0,rgba(255,255,255,.22) 1px,transparent 1px,transparent 4px),-webkit-repeating-linear-gradient(-45deg,rgba(0,0,0,.06) 0,rgba(0,0,0,.06) 1px,transparent 1px,transparent 4px);background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.22) 0,rgba(255,255,255,.22) 1px,transparent 1px,transparent 4px),repeating-linear-gradient(-45deg,rgba(0,0,0,.06) 0,rgba(0,0,0,.06) 1px,transparent 1px,transparent 4px)}
+header{position:relative;margin:0 0 4px;padding:14px 16px;color:#f6ecd8;background-color:#5a3a22;background-image:-webkit-linear-gradient(top,#7d5434,#4a2e1a);background-image:linear-gradient(to bottom,#7d5434,#4a2e1a);border-bottom:1px solid #22120a;-webkit-box-shadow:0 2px 5px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.22);box-shadow:0 2px 5px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.22)}
+header:after{content:"";position:absolute;left:5px;right:5px;top:5px;bottom:5px;border:1px dashed rgba(246,226,186,.6);border-radius:4px;pointer-events:none}
+.hd{display:table;max-width:640px;margin:0 auto}
+.hd>div{display:table-cell;vertical-align:middle}
+.hd img{display:block;width:57px;height:57px;margin-right:14px;border-radius:13px;-webkit-box-shadow:0 2px 4px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.35);box-shadow:0 2px 4px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.35)}
+.hd b{display:block;font-size:22px;line-height:1.15;text-shadow:0 -1px 0 rgba(0,0,0,.8)}
+.hd span{display:block;margin-top:3px;font-size:13px;color:#e4d3b3;text-shadow:0 -1px 0 rgba(0,0,0,.6)}
+.wrap{max-width:640px;margin:0 auto;padding:0 12px 30px}
+.lead{margin:14px 4px 0;color:#5f594b;text-shadow:0 1px 0 rgba(255,255,255,.75)}
+.gl{margin:20px 6px 7px;font-size:15px;font-weight:bold;color:#6d675a;text-shadow:0 1px 0 #fff}
+.note{margin:0 4px 10px;font-size:14px;color:#6d675a;text-shadow:0 1px 0 rgba(255,255,255,.75)}
+.grp{overflow:hidden;margin:0;padding:0;list-style:none;background:#fff;border:1px solid #a29e90;border-radius:10px;-webkit-box-shadow:0 1px 0 rgba(255,255,255,.8);box-shadow:0 1px 0 rgba(255,255,255,.8)}
+.grp:empty{display:none}
+.grp+.grp{margin-top:10px}
+.pad{padding:12px}
+.pad p{margin:0 0 10px}
+a{color:#1b62c8}
+[hidden]{display:none!important}
+input[type=text]{width:100%;-webkit-box-sizing:border-box;box-sizing:border-box;padding:9px 14px;font:inherit;border:1px solid #8a8a8a;border-radius:18px;background:#fff;-webkit-box-shadow:inset 0 2px 4px rgba(0,0,0,.35);box-shadow:inset 0 2px 4px rgba(0,0,0,.35)}
+input[type=text]:disabled{background:#eee}
+#msg{margin:0;font-weight:bold;color:#5a4a2a}
+#msg.bad{color:#a60f25}
+#msg:empty{display:none}
+li{padding:10px 12px;border-top:1px solid #dcdcdc;text-shadow:0 1px 0 #fff}
+li:first-child{border-top:0}
+li small{color:#777}
+li button{width:28px;height:28px;margin-right:8px;padding:0;font:bold 18px/24px Helvetica,Arial,sans-serif;text-align:center;color:#fff;text-shadow:0 -1px 0 rgba(0,0,0,.5);cursor:pointer;border:1px solid #1f5c14;border-radius:50%;background-color:#3c9d2a;background-image:-webkit-linear-gradient(top,#7dd35f,#2f8a1e);background-image:linear-gradient(to bottom,#7dd35f,#2f8a1e);-webkit-box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 1px 2px rgba(0,0,0,.4);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 1px 2px rgba(0,0,0,.4)}
+li button[data-r]{border-color:#6d0715;background-color:#c8102e;background-image:-webkit-linear-gradient(top,#e8505f,#a60f25);background-image:linear-gradient(to bottom,#e8505f,#a60f25)}
+#steps{display:table;table-layout:fixed;width:100%;margin:14px 0 0;border:1px solid #6b6552;border-radius:10px;overflow:hidden;-webkit-box-shadow:0 1px 0 rgba(255,255,255,.8);box-shadow:0 1px 0 rgba(255,255,255,.8)}
+.st{display:table-cell;padding:9px 2px 8px;text-align:center;font:bold 13px/1.2 "Helvetica Neue",Helvetica,Arial,sans-serif;color:#4a3b22;text-shadow:0 1px 0 #fff;cursor:pointer;border-left:1px solid #b9b39e;background-color:#ece6d3;background-image:-webkit-linear-gradient(top,#fffdf4,#e1dac4);background-image:linear-gradient(to bottom,#fffdf4,#e1dac4)}
+.st:first-child{border-left:0}
+.st i{display:block;width:24px;height:24px;margin:0 auto 4px;font:bold 14px/23px Helvetica,Arial,sans-serif;font-style:normal;color:#fff;text-shadow:0 -1px 0 rgba(0,0,0,.5);border-radius:12px;-webkit-box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 1px 2px rgba(0,0,0,.4);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 1px 2px rgba(0,0,0,.4)}
+.st small{display:block;font-weight:normal;color:#8a836f}
+.st.on{color:#fff;text-shadow:0 -1px 0 rgba(0,0,0,.5);background-color:#5a3a22;background-image:-webkit-linear-gradient(top,#4a2e1a,#7d5434);background-image:linear-gradient(to bottom,#4a2e1a,#7d5434)}
+.st.on small{color:#e4d3b3}
+.nav{margin-top:16px;overflow:hidden}
+.nav button{float:left;width:48%}
+.nav button+button{float:right}
+.btn{display:block;padding:13px;text-align:center;text-decoration:none;font:bold 17px "Helvetica Neue",Helvetica,Arial,sans-serif;color:#333;text-shadow:0 1px 0 #fff;cursor:pointer;border:1px solid #8a8a8a;border-radius:10px;background-color:#e4e4e4;background-image:-webkit-linear-gradient(top,#fdfdfd,#d3d3d3);background-image:linear-gradient(to bottom,#fdfdfd,#d3d3d3);-webkit-box-shadow:inset 0 1px 0 #fff,0 2px 4px rgba(0,0,0,.3);box-shadow:inset 0 1px 0 #fff,0 2px 4px rgba(0,0,0,.3)}
+.btn.red{color:#fff;text-shadow:0 -1px 0 rgba(0,0,0,.55);border-color:#6d0715;background-color:#c8102e;background-image:-webkit-linear-gradient(top,#e8505f,#a60f25);background-image:linear-gradient(to bottom,#e8505f,#a60f25);-webkit-box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 2px 4px rgba(0,0,0,.4);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 2px 4px rgba(0,0,0,.4)}
+.btn:active{background-image:-webkit-linear-gradient(top,#cfcfcf,#e9e9e9);background-image:linear-gradient(to bottom,#cfcfcf,#e9e9e9)}
+.btn.red:active{background-image:-webkit-linear-gradient(top,#a60f25,#c8102e);background-image:linear-gradient(to bottom,#a60f25,#c8102e)}
+.btn:disabled{color:#eee;text-shadow:0 -1px 0 rgba(0,0,0,.3);cursor:default;border-color:#777;background-color:#999;background-image:-webkit-linear-gradient(top,#bbb,#8d8d8d);background-image:linear-gradient(to bottom,#bbb,#8d8d8d)}
+#sum{margin:12px 4px 0;font-size:14px;color:#5f594b;text-shadow:0 1px 0 rgba(255,255,255,.75)}
+#fin{margin-top:16px}
+#fin .btn{width:100%;-webkit-box-sizing:border-box;box-sizing:border-box;margin-top:10px}
+#fin p{margin:0 0 6px}
+#warn{margin:12px 4px 0;font-weight:bold;color:#a60f25}
+#warn:empty{display:none}
+#dl{margin-top:10px}
+</style></head><body>
+<header><div class="hd"><div><img src="icon.png" alt=""></div><div><b>Rozkład</b><span>wybierz przystanki i otwórz je w aplikacji</span></div></div></header>
+<div class="wrap">
+<p class="lead">Wybierz przystanki w czterech krokach (autobus, tramwaj, pociąg, metro). Na końcu dotknij „Otwórz w aplikacji Rozkład” – aplikacja sama pobierze rozkład tych przystanków.</p>
+
+<div class="gl">Dane rozkładowe</div>
+<div class="grp pad"><div id="msg">Ładuję listę przystanków…</div><div id="again" hidden><button class="btn" id="retry" style="margin-top:10px;width:100%">Spróbuj jeszcze raz</button></div></div>
+<p class="note" id="age"></p>
+
+<section id="wiz" hidden>
+<div id="steps"></div>
+<div class="gl" id="ph"></div>
+<p class="note" id="pd"></p>
+<div class="grp pad"><input type="text" id="q" placeholder="Zacznij pisać nazwę przystanku…" autocomplete="off" autocorrect="off" autocapitalize="off"></div>
+<ul id="res" class="grp"></ul>
+<div class="gl">Wybrane w tym kroku: <span id="cnt">0</span>/10</div>
+<ul id="sel" class="grp"></ul>
+<div class="nav"><button class="btn" id="back">← Wstecz</button><button class="btn red" id="next">Dalej →</button></div>
+<div id="fin" class="grp pad" hidden>
+<p id="sum"></p>
+<a class="btn red" id="open" href="#">Otwórz w aplikacji Rozkład</a>
+<p class="note" style="margin:10px 0 0">Jeśli nic się nie dzieje, sprawdź, czy aplikacja Rozkład jest zainstalowana na tym telefonie.</p>
+<div id="dl" hidden><button class="btn" id="get">Pobierz plik rozklad.json (na komputer)</button><div id="warn"></div></div>
+</div>
+</section>
+<p class="note" style="margin-top:26px;text-align:center">Dane rozkładowe: ZTM Warszawa (GTFS), udostępnia mkuran.pl. Rozkład może być nieaktualny, sprawdzaj datę ważności.</p>
+</div>
+<script>
+(function(){
+var KINDS=[
+  {k:'b',bit:1,name:'Autobusy',desc:'przystanki autobusowe',col:'#c8102e'},
+  {k:'t',bit:2,name:'Tramwaje',desc:'przystanki tramwajowe',col:'#2a73d6'},
+  {k:'p',bit:4,name:'Pociągi',desc:'stacje i przystanki kolejowe',col:'#2f8a3a'},
+  {k:'m',bit:8,name:'Metro',desc:'stacje metra',col:'#1f3a8f'}];
+var KB={b:1,t:2,p:4,m:8};
+var MAX=10,IDX=null,G=[],chosen={b:[],t:[],p:[],m:[]},step=0;
+var BASE=location.href.replace(/[?#].*$/,'').replace(/[^\/]*$/,'');
+var $=function(i){return document.getElementById(i)};
+
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return '&#'+c.charCodeAt(0)+';'})}
+var MAP={};(function(){var g={a:'ąáàâäãåā',c:'ćč',d:'ď',e:'éèêëęě',i:'íìîï',l:'ł',n:'ńňñ',o:'óòôöõő',r:'ř',s:'śš',t:'ť',u:'úùûüůű',y:'ý',z:'źžż'},k,i;
+  for(k in g)for(i=0;i<g[k].length;i++)MAP[g[k].charAt(i)]=k})();
+function nz(s){var o='',i,c;s=String(s).toLowerCase();
+  for(i=0;i<s.length;i++){c=s.charAt(i);o+=MAP[c]||c}
+  return o}
+function say(t,bad){var m=$('msg');m.textContent=t;m.className=bad?'bad':''}
+function p2(n){return n<10?'0'+n:''+n}
+function dmy(s){return s&&s.length===8?s.slice(6,8)+'.'+s.slice(4,6)+'.'+s.slice(0,4):''}
+
+/* ---------- pobieranie ---------- */
+function get(url,ok,fail,prog){
+  var x=new XMLHttpRequest();
+  x.open('GET',url,true);
+  x.onreadystatechange=function(){
+    if(x.readyState!==4)return;
+    if(x.status===200)ok(x.responseText);else fail(x.status)};
+  if(prog)x.onprogress=function(e){prog(e.loaded)};
+  x.send(null);
+  return x}
+function getAll(urls,cb,prog){
+  var out=[],i=0,active=0,done=0,err=null,fin=false;
+  function pump(){
+    while(!err&&active<5&&i<urls.length){(function(n){
+      active++;
+      get(urls[n],function(t){out[n]=t;active--;done++;prog(done,urls.length);pump()},
+        function(s){if(!err)err='Nie udało się pobrać pliku '+urls[n]+' (kod '+s+').';active--;pump()})
+    })(i++)}
+    if(active===0&&!fin&&(err||done===urls.length)){fin=true;cb(err,out)}}
+  pump()}
+
+/* ---------- zapamiętywanie wyboru w tej przeglądarce ---------- */
+function gid(g){return g[0]+'|'+g[5].map(function(p){return p[1]}).join(',')}
+function save(){try{
+  var o={};KINDS.forEach(function(K){o[K.k]=chosen[K.k].map(gid)});
+  localStorage.setItem('rzsel',JSON.stringify(o))}catch(e){}}
+function restore(){try{
+  var o=JSON.parse(localStorage.getItem('rzsel')||'null'),by={};
+  if(!o)return;
+  G.forEach(function(g){by[gid(g)]=g});
+  KINDS.forEach(function(K){chosen[K.k]=(o[K.k]||[]).map(function(id){return by[id]}).filter(function(g){return g&&(g[2]&K.bit)}).slice(0,MAX)})}catch(e){}}
+
+/* ---------- wczytanie listy przystanków ---------- */
+function load(){
+  $('wiz').hidden=true;$('again').hidden=true;say('Ładuję listę przystanków…');
+  get('index.json?t='+(+new Date()),function(t){
+    try{
+      IDX=JSON.parse(t);G=IDX.g;
+      restore();
+      var today=new Date(),ymd=''+today.getFullYear()+p2(today.getMonth()+1)+p2(today.getDate());
+      say('Wczytano przystanków: '+G.length+'. Przejdź przez cztery kroki poniżej.');
+      $('age').textContent='Dane z dnia '+IDX.gen+(IDX.end?', rozkład ważny do '+dmy(IDX.end):'')+'.'+(IDX.end&&IDX.end<ymd?' UWAGA: ten rozkład już wygasł, poczekaj na nowe dane.':'');
+      $('wiz').hidden=false;render();
+    }catch(e){say('Błąd w danych: '+e.message,true);$('again').hidden=false}
+  },function(s){
+    say('Nie udało się pobrać listy przystanków (kod '+s+'). Sprawdź połączenie z internetem.',true);$('again').hidden=false
+  },function(n){say('Ładuję listę przystanków… '+Math.round(n/1024)+' KB')})}
+$('retry').onclick=load;
+
+/* ---------- kroki ---------- */
+function info(g,bit){
+  var ps=g[5].filter(function(p){return p[2]&bit});
+  return esc(g[0])+' <small>('+ps.length+' słup.: '+esc(ps.map(function(p){return p[1]}).join(', '))+')</small>'+(g[3]?' <a href="https://www.openstreetmap.org/?mlat='+g[3]+'&amp;mlon='+g[4]+'&amp;zoom=17" target="_blank">mapa</a>':'')}
+function total(){return KINDS.reduce(function(n,K){return n+chosen[K.k].length},0)}
+function plan(){
+  var m={},order=[];
+  KINDS.forEach(function(K){chosen[K.k].forEach(function(g){g[5].forEach(function(p){
+    if(!(p[2]&K.bit))return;
+    if(m[p[0]]===undefined){m[p[0]]=0;order.push(p[0])}
+    m[p[0]]|=K.bit})})});
+  return order.map(function(n){return [n,m[n]]})}
+function link(){
+  var pl=plan();
+  return 'rozklad://import?u='+encodeURIComponent(BASE)+'&v='+IDX.v+'&p='+pl.map(function(x){return x[0]+'.'+x[1]}).join(',')}
+function render(){
+  var K=KINDS[step],list=chosen[K.k],t,pl;
+  $('steps').innerHTML=KINDS.map(function(X,n){
+    return '<div class="st'+(n===step?' on':'')+'" data-s="'+n+'"><i style="background:'+X.col+'">'+(n+1)+'</i>'+X.name+'<small>'+chosen[X.k].length+' wybr.</small></div>'}).join('');
+  $('ph').textContent='Krok '+(step+1)+' z 4: '+K.name;
+  $('pd').textContent='Wyszukaj '+K.desc+' i dodaj je do listy (maks. '+MAX+'). Jeśli nie potrzebujesz tego rodzaju, po prostu dotknij „Dalej”.';
+  $('sel').innerHTML=list.map(function(g,n){return '<li><button data-r="'+n+'">×</button> '+info(g,K.bit)+'</li>'}).join('');
+  $('cnt').textContent=list.length;
+  $('q').disabled=list.length>=MAX;$('q').value='';$('res').innerHTML='';
+  $('back').disabled=step===0;
+  $('next').style.display=step===3?'none':'';
+  $('back').style.width=step===3?'100%':'';
+  $('fin').hidden=step!==3;
+  if(step===3){
+    t=total();pl=plan();
+    $('sum').textContent=t?'Razem wybrano: '+t+' ('+KINDS.map(function(X){return X.name.toLowerCase()+' '+chosen[X.k].length}).join(', ')+'), słupków: '+pl.length+'.':'Nie wybrano jeszcze żadnego przystanku. Wróć do któregoś z kroków.';
+    $('open').style.display=t?'':'none';
+    if(t)$('open').href=link();
+    $('dl').hidden=!(t&&canDownload());
+    $('warn').textContent='';
+  }
+  save()}
+$('steps').onclick=function(e){var n=(e||window.event).target;
+  while(n&&n!==this&&(!n.getAttribute||n.getAttribute('data-s')===null))n=n.parentNode;
+  if(n&&n!==this){step=+n.getAttribute('data-s');render()}};
+$('back').onclick=function(){if(step>0){step--;render()}};
+$('next').onclick=function(){if(step<3){step++;render()}};
+$('q').oninput=function(){
+  try{
+    var K=KINDS[step],t=nz(this.value).replace(/^\s+|\s+$/g,''),h='',n=0,i,g,k,pass,hit;
+    if(t.length>1&&chosen[K.k].length<MAX){
+      for(pass=0;pass<2&&n<30;pass++){
+        for(i=0;i<G.length&&n<30;i++){g=G[i];
+          if(!(g[2]&K.bit)||chosen[K.k].indexOf(g)>=0)continue;
+          k=g[1]||g[0].toLowerCase();
+          hit=pass===0?(k.indexOf(t)===0||k.indexOf(' '+t)>=0):(k.indexOf(t)>=0&&!(k.indexOf(t)===0||k.indexOf(' '+t)>=0));
+          if(hit){n++;h+='<li><button data-i="'+i+'">+</button> '+info(g,K.bit)+'</li>'}}}
+      if(!n)h='<li>Brak wyników dla „'+esc(this.value)+'” wśród przystanków tego rodzaju</li>'}
+    $('res').innerHTML=h;
+  }catch(e){say('Błąd wyszukiwania: '+e.message,true)}};
+$('res').onclick=function(e){var i=(e||window.event).target.getAttribute('data-i'),K=KINDS[step];
+  if(i!==null&&chosen[K.k].length<MAX){chosen[K.k].push(G[i]);render();if(chosen[K.k].length<MAX)$('q').focus()}};
+$('sel').onclick=function(e){var i=(e||window.event).target.getAttribute('data-r');if(i!==null){chosen[KINDS[step].k].splice(i,1);render()}};
+
+/* ---------- plik rozklad.json do pobrania (na komputerze) ---------- */
+function canDownload(){
+  try{return !!(window.Blob&&window.URL&&window.URL.createObjectURL&&('download' in document.createElement('a')))}catch(e){return false}}
+function assemble(texts,pl){
+  var svc=JSON.parse(texts[0]),remap={},S=[],stops=[],i,j,p,d,gr,k,mins;
+  for(i=0;i<pl.length;i++){
+    p=JSON.parse(texts[i+1]);d=[];
+    for(j=0;j<p.g.length;j++){gr=p.g[j];
+      if(!(pl[i][1]&KB[gr[3]]))continue;
+      if(remap[gr[2]]===undefined){remap[gr[2]]=S.length;S.push(svc.svc[gr[2]])}
+      for(k=0;k<gr[4].length;k++)d.push([gr[0],gr[1],remap[gr[2]],gr[4][k],gr[3]])}
+    d.sort(function(a,b){return a[3]-b[3]});
+    if(d.length)stops.push({n:p.n,c:p.c,d:d})}
+  return {gen:svc.gen,end:svc.end,stops:stops,svc:S}}
+$('get').onclick=function(){
+  var pl=plan(),root=BASE+'d/'+IDX.v+'/',urls=[root+'svc.json'],i,btn=this;
+  for(i=0;i<pl.length;i++)urls.push(root+'s/'+pl[i][0]+'.json');
+  btn.disabled=true;$('warn').textContent='Pobieram 0/'+urls.length+'…';
+  getAll(urls,function(err,texts){
+    btn.disabled=false;
+    if(err){$('warn').textContent=err;return}
+    try{
+      var o=assemble(texts,pl),json=JSON.stringify(o).replace(/</g,'\\u003c'),b=new Blob([json],{type:'application/json'}),a=document.createElement('a');
+      a.href=URL.createObjectURL(b);a.download='rozklad.json';document.body.appendChild(a);a.click();document.body.removeChild(a);
+      $('warn').textContent='Gotowe: rozklad.json, '+Math.round(json.length/1024)+' KB.';
+      window.__rz=o;
+    }catch(e){$('warn').textContent='Błąd: '+e.message}
+  },function(n,m){$('warn').textContent='Pobieram '+n+'/'+m+'…'})};
+
+load();
+})();
+</script>
+</body></html>
