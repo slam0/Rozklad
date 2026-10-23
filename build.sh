@@ -26,8 +26,7 @@ if [ -z "$SDKVER" ]; then
 fi
 echo "==> Używam SDK iOS $SDKVER"
 
-chmod 755 layout/DEBIAN/postinst 2>/dev/null || true
-
+rm -rf packages .theos
 # Na GitHubie (Actions) zmienna GITHUB_REPOSITORY ma postać "nazwa/repozytorium".
 # Z niej powstaje adres strony z rozkładem, który aplikacja otwiera w Safari.
 if [ -n "$GITHUB_REPOSITORY" ]; then
