@@ -91,7 +91,7 @@ jobs:
           SDKVER: ${{ github.event.inputs.sdk }}
         run: |
           chmod +x build.sh
-          chmod 755 layout/DEBIAN/postinst
+          rm -rf packages .theos
           ./build.sh
 
       - name: Złóż plik .ipa (do instalacji przez iTunes z AppSync)
