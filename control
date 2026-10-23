@@ -4,6 +4,6 @@ Depends: firmware (>= 6.0)
 Version: 0.3.0
 Architecture: iphoneos-arm
 Description: Rozklad jazdy offline: autobus, tramwaj, pociag, metro
-Maintainer: legacyIOSCOMMUNITY
+Maintainer: nazar0vsky-slam0
 Author: nazar0vsky-slam0
 Section: Utilities
