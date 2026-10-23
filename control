@@ -1,5 +1,5 @@
 Package: pl.legacyios.rozklad
-Name: Rozklad
+Name: Rozkład
 Depends: firmware (>= 6.0)
 Version: 1.0.0
 Architecture: iphoneos-arm
