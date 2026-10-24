@@ -37,6 +37,31 @@ int main(void)
     rz_duration(7 * 60, b, sizeof b);
     CHECK(strcmp(b, "7 min") == 0, "duration minuty");
 
+    /* --- angielski i rosyjski --- */
+    rz_set_lang(1);
+    expect_eta(0, "departing now");   expect_eta(1, "in 1 minute");
+    expect_eta(5, "in 5 minutes");    expect_eta(65, "in 1 h 5 min");
+    expect_eta(120, "in 2 h");
+    rz_duration((1L * 1440 + 2 * 60 + 5) * 60, b, sizeof b);
+    CHECK(strcmp(b, "1 day 2 h 5 min") == 0, "duration en 1 day");
+    rz_duration((20L * 1440 + 13 * 60 + 24) * 60, b, sizeof b);
+    CHECK(strcmp(b, "20 days 13 h 24 min") == 0, "duration en days");
+    rz_set_lang(2);
+    expect_eta(0, "отправляется сейчас");
+    expect_eta(1, "через 1 минуту");   expect_eta(2, "через 2 минуты");
+    expect_eta(5, "через 5 минут");    expect_eta(11, "через 11 минут");
+    expect_eta(12, "через 12 минут");  expect_eta(14, "через 14 минут");
+    expect_eta(21, "через 21 минуту"); expect_eta(22, "через 22 минуты");
+    expect_eta(25, "через 25 минут");  expect_eta(60, "через 1 ч");
+    expect_eta(65, "через 1 ч 5 мин");
+    rz_duration((21L * 1440 + 13 * 60 + 24) * 60, b, sizeof b);
+    CHECK(strcmp(b, "21 день 13 ч 24 мин") == 0, "duration ru 21 день");
+    rz_duration((3L * 1440 + 0 * 60 + 5) * 60, b, sizeof b);
+    CHECK(strcmp(b, "3 дня 0 ч 5 мин") == 0, "duration ru 3 дня");
+    rz_duration((11L * 1440) * 60, b, sizeof b);
+    CHECK(strcmp(b, "11 дней 0 ч 0 мин") == 0, "duration ru 11 дней");
+    rz_set_lang(0);
+
     CHECK(rz_parse_date("20261231") == 20261231, "parse date");
     CHECK(rz_parse_date("") == 0 && rz_parse_date("2026-12-31") == 0 && rz_parse_date(NULL) == 0, "parse date zły");
 

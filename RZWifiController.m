@@ -1,4 +1,5 @@
 #import "RZWifiController.h"
+#import "RZLang.h"
 #import "RZSchedule.h"
 #import "RZViews.h"
 #import "rz_http.h"
@@ -50,13 +51,13 @@ static int RZReceive(const char *body, size_t len, void *ctx, char *err, size_t 
     self.title = @"Wi-Fi";
     self.view.backgroundColor = RZPaperColor();
     self.navigationItem.rightBarButtonItem =
-        [[UIBarButtonItem alloc] initWithTitle:@"Gotowe" style:UIBarButtonItemStyleDone
+        [[UIBarButtonItem alloc] initWithTitle:RZL(@"Gotowe") style:UIBarButtonItemStyleDone
                                         target:self action:@selector(doneTapped)];
 
     CGFloat w = self.view.bounds.size.width;
 
     UILabel *head = [self labelWithFrame:CGRectMake(20, 18, w - 40, 24) font:[UIFont boldSystemFontOfSize:17.0f] color:RZInkColor()];
-    head.text = @"Adres tego telefonu:";
+    head.text = RZL(@"Adres tego telefonu:");
     [self.view addSubview:head];
 
     _address = [self labelWithFrame:CGRectMake(14, 46, w - 28, 44) font:[UIFont boldSystemFontOfSize:22.0f] color:[UIColor blackColor]];
@@ -71,10 +72,7 @@ static int RZReceive(const char *body, size_t len, void *ctx, char *err, size_t 
 
     _help = [self labelWithFrame:CGRectMake(20, 102, w - 40, 150) font:[UIFont systemFontOfSize:15.0f] color:RZInkColor()];
     _help.numberOfLines = 0;
-    _help.text = @"1. Upewnij się, że telefon i komputer są w tej samej sieci Wi-Fi.\n"
-                 @"2. W generatorze wpisz ten adres i kliknij „Wyślij na telefon”.\n"
-                 @"Możesz też otworzyć ten adres w przeglądarce na komputerze i wybrać plik rozklad.json.\n"
-                 @"Nie zamykaj tego okna, dopóki plik nie dojdzie.";
+    _help.text = RZL(@"1. Upewnij się, że telefon i komputer są w tej samej sieci Wi-Fi.\n2. W generatorze wpisz ten adres i kliknij „Wyślij na telefon”.\nMożesz też otworzyć ten adres w przeglądarce na komputerze i wybrać plik rozklad.json.\nNie zamykaj tego okna, dopóki plik nie dojdzie.");
     [self.view addSubview:_help];
 
     _status = [self labelWithFrame:CGRectMake(20, 262, w - 40, 80) font:[UIFont boldSystemFontOfSize:17.0f] color:RZInkColor()];
@@ -103,20 +101,20 @@ static int RZReceive(const char *body, size_t len, void *ctx, char *err, size_t 
     char ip[64];
     rz_http_local_ip(ip, sizeof ip);
     if (!ip[0]) {
-        _address.text = @"brak sieci Wi-Fi";
-        _status.text = @"Telefon nie jest połączony z Wi-Fi. Włącz Wi-Fi w Ustawieniach i wróć tutaj.";
+        _address.text = RZL(@"brak sieci Wi-Fi");
+        _status.text = RZL(@"Telefon nie jest połączony z Wi-Fi. Włącz Wi-Fi w Ustawieniach i wróć tutaj.");
         return;
     }
     gActive = self;
     int port = rz_http_start(kRZPort, RZReceive, NULL);
     if (port < 0) {
         _address.text = [NSString stringWithUTF8String:ip];
-        _status.text = @"Nie udało się uruchomić odbioru. Zamknij to okno i spróbuj jeszcze raz.";
+        _status.text = RZL(@"Nie udało się uruchomić odbioru. Zamknij to okno i spróbuj jeszcze raz.");
         return;
     }
     _running = YES;
     _address.text = [NSString stringWithFormat:@"%s:%d", ip, port];
-    _status.text = @"Czekam na plik…";
+    _status.text = RZL(@"Czekam na plik…");
 }
 
 - (void)stopServer
@@ -129,7 +127,7 @@ static int RZReceive(const char *body, size_t len, void *ctx, char *err, size_t 
 
 - (void)showReceivedStops:(NSUInteger)stops kilobytes:(NSUInteger)kb
 {
-    _status.text = [NSString stringWithFormat:@"Odebrano rozkład: %lu pozycji (%lu KB).\nDotknij „Gotowe”.",
+    _status.text = [NSString stringWithFormat:RZL(@"Odebrano rozkład: %lu pozycji (%lu KB).\nDotknij „Gotowe”."),
                     (unsigned long)stops, (unsigned long)kb];
 }
 

@@ -1,9 +1,26 @@
 #import "RZImportController.h"
+#import "RZLang.h"
 #import "RZSchedule.h"
 #import "RZViews.h"
 #import "rz_import.h"
 
 static NSString *const kSiteBaseKey = @"site_base";
+
+/* Komunikat z kodu w C (po polsku) przetłumaczony na język aplikacji.
+   Komunikaty typu "Plik słupka jest uszkodzony (zły format)." tłumaczymy w dwóch częściach. */
+static NSString *RZCError(const char *e)
+{
+    NSString *s = [NSString stringWithUTF8String:e];
+    NSArray *prefixes = [NSArray arrayWithObjects:@"Plik z kalendarzami jest uszkodzony (", @"Plik słupka jest uszkodzony (", nil];
+    for (NSString *p in prefixes) {
+        if ([s hasPrefix:p] && [s hasSuffix:@")."]) {
+            NSString *reason = [s substringWithRange:NSMakeRange([p length], [s length] - [p length] - 2)];
+            NSString *pattern = RZL([p stringByAppendingString:@"%s)."]);
+            return [pattern stringByReplacingOccurrencesOfString:@"%s" withString:RZL(reason)];
+        }
+    }
+    return RZL(s);
+}
 
 @implementation RZImportController {
     NSString *_urlString;
@@ -29,7 +46,7 @@ static NSString *const kSiteBaseKey = @"site_base";
         if (rz_import_parse([_urlString UTF8String], &req, err, sizeof err) == 0) {
             _reqData = [NSData dataWithBytes:&req length:sizeof req];
         } else {
-            _parseError = [NSString stringWithUTF8String:err];
+            _parseError = RZCError(err);
         }
     }
     return self;
@@ -51,7 +68,7 @@ static NSString *const kSiteBaseKey = @"site_base";
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-    self.title = @"Pobieranie";
+    self.title = RZL(@"Pobieranie");
     self.view.backgroundColor = RZPaperColor();
     CGFloat w = self.view.bounds.size.width;
 
@@ -77,19 +94,19 @@ static NSString *const kSiteBaseKey = @"site_base";
     [self.view addSubview:_status];
 
     if (!_reqData) {
-        [self showFailure:_parseError ? _parseError : @"Nie rozumiem tego linku."];
+        [self showFailure:_parseError ? _parseError : RZL(@"Nie rozumiem tego linku.")];
         return;
     }
     rz_import_req req;
     [_reqData getBytes:&req length:sizeof req];
-    _head.text = @"Pobrać rozkład?";
-    _detail.text = [NSString stringWithFormat:@"Aplikacja pobierze rozkład wybranych przystanków (słupków: %d) ze strony:\n%s\n\nTo zastąpi rozkład, który masz teraz w telefonie.",
+    _head.text = RZL(@"Pobrać rozkład?");
+    _detail.text = [NSString stringWithFormat:RZL(@"Aplikacja pobierze rozkład wybranych przystanków (słupków: %d) ze strony:\n%s\n\nTo zastąpi rozkład, który masz teraz w telefonie."),
                     req.count, req.host];
     self.navigationItem.leftBarButtonItem =
-        [[UIBarButtonItem alloc] initWithTitle:@"Anuluj" style:UIBarButtonItemStyleBordered
+        [[UIBarButtonItem alloc] initWithTitle:RZL(@"Anuluj") style:UIBarButtonItemStyleBordered
                                         target:self action:@selector(cancelTapped)];
     self.navigationItem.rightBarButtonItem =
-        [[UIBarButtonItem alloc] initWithTitle:@"Pobierz" style:UIBarButtonItemStyleDone
+        [[UIBarButtonItem alloc] initWithTitle:RZL(@"Pobierz") style:UIBarButtonItemStyleDone
                                         target:self action:@selector(startTapped)];
 }
 
@@ -123,9 +140,9 @@ static NSString *const kSiteBaseKey = @"site_base";
     if (_working || !_reqData) return;
     _working = YES;
     _cancelled = NO;
-    _head.text = @"Pobieram rozkład…";
-    _detail.text = @"Nie zamykaj aplikacji, dopóki trwa pobieranie. Przy wolnym internecie może to potrwać kilka minut.";
-    _status.text = @"Łączę…";
+    _head.text = RZL(@"Pobieram rozkład…");
+    _detail.text = RZL(@"Nie zamykaj aplikacji, dopóki trwa pobieranie. Przy wolnym internecie może to potrwać kilka minut.");
+    _status.text = RZL(@"Łączę…");
     _bar.progress = 0;
     _bar.hidden = NO;
     [_spin startAnimating];
@@ -152,13 +169,13 @@ static NSString *const kSiteBaseKey = @"site_base";
     _finished = YES;
     [_spin stopAnimating];
     _bar.hidden = YES;
-    _head.text = @"Nie udało się";
+    _head.text = RZL(@"Nie udało się");
     _detail.text = message;
     _status.text = @"";
     [UIApplication sharedApplication].idleTimerDisabled = NO;
     self.navigationItem.leftBarButtonItem = nil;
     self.navigationItem.rightBarButtonItem =
-        [[UIBarButtonItem alloc] initWithTitle:@"Gotowe" style:UIBarButtonItemStyleDone
+        [[UIBarButtonItem alloc] initWithTitle:RZL(@"Gotowe") style:UIBarButtonItemStyleDone
                                         target:self action:@selector(doneTapped)];
 }
 
@@ -176,13 +193,13 @@ static NSString *const kSiteBaseKey = @"site_base";
     [[NSUserDefaults standardUserDefaults] setObject:base forKey:kSiteBaseKey];
     [[NSUserDefaults standardUserDefaults] synchronize];
 
-    _head.text = @"Gotowe!";
-    _detail.text = [NSString stringWithFormat:@"Rozkład jest już w telefonie.\nSłupków: %lu, rozmiar pliku: %lu KB.",
+    _head.text = RZL(@"Gotowe!");
+    _detail.text = [NSString stringWithFormat:RZL(@"Rozkład jest już w telefonie.\nSłupków: %lu, rozmiar pliku: %lu KB."),
                     (unsigned long)stops, (unsigned long)kb];
     _status.text = @"";
     self.navigationItem.leftBarButtonItem = nil;
     self.navigationItem.rightBarButtonItem =
-        [[UIBarButtonItem alloc] initWithTitle:@"Gotowe" style:UIBarButtonItemStyleDone
+        [[UIBarButtonItem alloc] initWithTitle:RZL(@"Gotowe") style:UIBarButtonItemStyleDone
                                         target:self action:@selector(doneTapped)];
 }
 
@@ -197,11 +214,11 @@ static NSString *const kSiteBaseKey = @"site_base";
     Class connClass = NSClassFromString(@"NSURLConnection");
     Class httpClass = NSClassFromString(@"NSHTTPURLResponse");
     if (!reqClass || !connClass || !httpClass) {
-        *reason = @"Ten system nie ma potrzebnych funkcji sieciowych.";
+        *reason = RZL(@"Ten system nie ma potrzebnych funkcji sieciowych.");
         return nil;
     }
     NSURL *url = [NSURL URLWithString:urlString];
-    NSString *last = @"brak odpowiedzi";
+    NSString *last = RZL(@"brak odpowiedzi");
     for (int attempt = 0; attempt < 3; attempt++) {
         if (_cancelled) return nil;
         @autoreleasepool {
@@ -214,28 +231,28 @@ static NSString *const kSiteBaseKey = @"site_base";
             NSInteger code = [resp isKindOfClass:httpClass] ? [(NSHTTPURLResponse *)resp statusCode] : 0;
             if (d && code == 200) {
                 if ([d length] > limit) {
-                    *reason = @"Plik ze strony jest zbyt duży, więc go odrzuciłem.";
+                    *reason = RZL(@"Plik ze strony jest zbyt duży, więc go odrzuciłem.");
                     return nil;
                 }
                 return d;
             }
             if (code == 404) {
-                *reason = @"Na stronie nie ma już tych danych (błąd 404). Dane zostały odświeżone – otwórz stronę jeszcze raz, wybierz przystanki i ponownie dotknij „Otwórz w aplikacji Rozkład”.";
+                *reason = RZL(@"Na stronie nie ma już tych danych (błąd 404). Dane zostały odświeżone – otwórz stronę jeszcze raz, wybierz przystanki i ponownie dotknij „Otwórz w aplikacji Rozkład”.");
                 return nil;
             }
             if (err) {
                 if ([[err domain] isEqualToString:@"NSURLErrorDomain"] && [err code] <= -1200 && [err code] >= -1206) {
-                    *reason = @"Telefon nie mógł nawiązać bezpiecznego połączenia (HTTPS). Na iOS 6 potrzebna jest poprawka SSL/TLS z Cydii. Sprawdź też, czy data i godzina w telefonie są poprawne.";
+                    *reason = RZL(@"Telefon nie mógł nawiązać bezpiecznego połączenia (HTTPS). Na iOS 6 potrzebna jest poprawka SSL/TLS z Cydii. Sprawdź też, czy data i godzina w telefonie są poprawne.");
                     return nil;
                 }
                 last = [err localizedDescription];
             } else if (code) {
-                last = [NSString stringWithFormat:@"błąd serwera %ld", (long)code];
+                last = [NSString stringWithFormat:RZL(@"błąd serwera %ld"), (long)code];
             }
         }
         [NSThread sleepForTimeInterval:1.5];
     }
-    *reason = [NSString stringWithFormat:@"Nie udało się pobrać danych. Sprawdź połączenie z internetem i spróbuj jeszcze raz.\n\n(%@)", last];
+    *reason = [NSString stringWithFormat:RZL(@"Nie udało się pobrać danych. Sprawdź połączenie z internetem i spróbuj jeszcze raz.\n\n(%@)"), last];
     return nil;
 }
 
@@ -267,12 +284,12 @@ static NSString *const kSiteBaseKey = @"site_base";
             }
             if (i < 0) {
                 as = rz_asm_new((const char *)[d bytes], [d length], err, sizeof err);
-                if (!as) failure = [NSString stringWithUTF8String:err];
+                if (!as) failure = RZCError(err);
             } else if (rz_asm_add(as, (const char *)[d bytes], [d length], req.mask[i], err, sizeof err)) {
-                failure = [NSString stringWithUTF8String:err];
+                failure = RZCError(err);
             }
             float p = (float)(i + 2) / (float)total;
-            NSString *t = [NSString stringWithFormat:@"Pobrano %d z %d", i + 2, total];
+            NSString *t = [NSString stringWithFormat:RZL(@"Pobrano %d z %d"), i + 2, total];
             dispatch_async(dispatch_get_main_queue(), ^{ [self setProgress:p text:t]; });
         }
     }
@@ -281,17 +298,17 @@ static NSString *const kSiteBaseKey = @"site_base";
         size_t len = 0;
         stops = (NSUInteger)rz_asm_stops(as);
         if (stops == 0) {
-            failure = @"Wybrane przystanki nie mają żadnych odjazdów. Spróbuj wybrać inne.";
+            failure = RZL(@"Wybrane przystanki nie mają żadnych odjazdów. Spróbuj wybrać inne.");
         } else {
             char *json = rz_asm_finish(as, &len);
             if (!json) {
-                failure = @"Brak pamięci w telefonie, żeby złożyć rozkład. Wybierz mniej przystanków.";
+                failure = RZL(@"Brak pamięci w telefonie, żeby złożyć rozkład. Wybierz mniej przystanków.");
             } else {
                 NSData *out = [NSData dataWithBytesNoCopy:json length:len freeWhenDone:YES];
                 NSString *dir = [[RZSchedule shared] folder];
                 [[NSFileManager defaultManager] createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:NULL];
                 dest = [dir stringByAppendingPathComponent:@"rozklad.json"];
-                if (![out writeToFile:dest atomically:YES]) failure = @"Nie udało się zapisać pliku w telefonie.";
+                if (![out writeToFile:dest atomically:YES]) failure = RZL(@"Nie udało się zapisać pliku w telefonie.");
                 bytes = len;
             }
         }
@@ -301,7 +318,7 @@ static NSString *const kSiteBaseKey = @"site_base";
     NSString *base = [NSString stringWithUTF8String:req.base];
     dispatch_async(dispatch_get_main_queue(), ^{
         if (_cancelled) return;
-        if (failure) [self showFailure:([failure length] ? failure : @"Pobieranie przerwano.")];
+        if (failure) [self showFailure:([failure length] ? failure : RZL(@"Pobieranie przerwano."))];
         else [self showSuccess:stops kilobytes:(bytes + 512) / 1024 base:base];
     });
 }

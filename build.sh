@@ -26,7 +26,15 @@ if [ -z "$SDKVER" ]; then
 fi
 echo "==> Używam SDK iOS $SDKVER"
 
+chmod 755 layout/DEBIAN/postinst 2>/dev/null || true
+
+# Usuwamy stare paczki i pliki z poprzednich budowań, żeby nie trafiły do nowego pakietu.
 rm -rf packages .theos
+
+echo "==> Repozytorium: ${GITHUB_REPOSITORY:-lokalnie}, wersja kodu: ${GITHUB_SHA:-brak}"
+echo "==> Plik control, który zobaczył budowanie:"
+grep -E '^(Package|Version|Author|Maintainer):' control || true
+
 # Na GitHubie (Actions) zmienna GITHUB_REPOSITORY ma postać "nazwa/repozytorium".
 # Z niej powstaje adres strony z rozkładem, który aplikacja otwiera w Safari.
 if [ -n "$GITHUB_REPOSITORY" ]; then

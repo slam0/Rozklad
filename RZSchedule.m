@@ -1,4 +1,5 @@
 #import "RZSchedule.h"
+#import "RZLang.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -123,6 +124,23 @@ static BOOL RZIsJSON(NSString *name)
 
 /* Pełne ścieżki plików .json: każdy plik .json z folderu Rozklady oraz pliki rozklad*.json
    z głównego folderu dokumentów (tam trafiają pliki przeciągnięte w iTunes). */
+- (NSArray *)rawJsonPaths
+{
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSString *folder = [self folder];
+    NSString *docs = [self documentsFolder];
+    NSMutableArray *paths = [NSMutableArray array];
+    for (NSString *name in [fm contentsOfDirectoryAtPath:folder error:NULL]) {
+        if (RZIsJSON(name)) [paths addObject:[folder stringByAppendingPathComponent:name]];
+    }
+    for (NSString *name in [fm contentsOfDirectoryAtPath:docs error:NULL]) {
+        if (RZIsJSON(name) && [[name lowercaseString] hasPrefix:@"rozklad"]) {
+            [paths addObject:[docs stringByAppendingPathComponent:name]];
+        }
+    }
+    return paths;
+}
+
 - (NSArray *)jsonPaths
 {
     NSFileManager *fm = [NSFileManager defaultManager];
@@ -188,7 +206,7 @@ static BOOL RZIsJSON(NSString *name)
             if (![root isKindOfClass:[NSDictionary class]]
                 || !RZArr([root objectForKey:@"stops"])
                 || !RZArr([root objectForKey:@"svc"])) {
-                problem = [NSString stringWithFormat:@"Nie mogę odczytać pliku %@ (to nie jest rozklad.json z generatora).", name];
+                problem = [NSString stringWithFormat:RZL(@"Nie mogę odczytać pliku %@ (to nie jest rozklad.json z generatora)."), name];
                 continue;
             }
             RZDataset *set = [self datasetFromRoot:root fileName:name stops:allStops];
@@ -403,14 +421,29 @@ static NSString *RZSelectionKey(char kind)
         list = [lines componentsJoinedByString:@", "];
     }
     if (![lines count]) return @"";
-    if ([head length]) return [NSString stringWithFormat:@"linie: %@ · do: %@", list, head];
-    return [NSString stringWithFormat:@"linie: %@", list];
+    if ([head length]) return [NSString stringWithFormat:RZL(@"linie: %@ · do: %@"), list, head];
+    return [NSString stringWithFormat:RZL(@"linie: %@"), list];
 }
 
 + (NSInteger)minutesOfDay:(NSDate *)date
 {
     NSDateComponents *c = [RZCalendar() components:(NSHourCalendarUnit | NSMinuteCalendarUnit) fromDate:date];
     return [c hour] * 60 + [c minute];
+}
+
++ (NSInteger)secondsOfDay:(NSDate *)date
+{
+    NSDateComponents *c = [RZCalendar() components:(NSHourCalendarUnit | NSMinuteCalendarUnit | NSSecondCalendarUnit) fromDate:date];
+    return ([c hour] * 60 + [c minute]) * 60 + [c second];
+}
+
++ (NSString *)countdownString:(NSInteger)secondsLeft
+{
+    if (secondsLeft <= 0) return RZL(@"odjeżdża teraz");
+    if (secondsLeft >= 600) return [self etaString:(secondsLeft + 59) / 60];
+    NSInteger m = secondsLeft / 60, s = secondsLeft % 60;
+    if (m == 0) return [NSString stringWithFormat:RZL(@"za %ld s"), (long)s];
+    return [NSString stringWithFormat:RZL(@"za %ld min %02ld s"), (long)m, (long)s];
 }
 
 - (NSArray *)nextDeparturesForStop:(RZStop *)stop kind:(char)kind now:(NSDate *)now limit:(NSUInteger)limit
@@ -450,21 +483,123 @@ static NSString *RZSelectionKey(char kind)
     return result;
 }
 
+/* Koniec ostatniego dnia ważności jednego pliku (lub nil, gdy plik nie podaje daty) */
+- (NSDate *)expiryOfDataset:(RZDataset *)ds
+{
+    int32_t e = rz_parse_date([ds.end UTF8String]);
+    if (e <= 0) return nil;
+    NSDateComponents *c = [[NSDateComponents alloc] init];
+    [c setYear:e / 10000];
+    [c setMonth:(e / 100) % 100];
+    [c setDay:(e % 100) + 1];     /* ważny do końca ostatniego dnia */
+    return [RZCalendar() dateFromComponents:c];
+}
+
 - (NSDate *)expiryDate
 {
-    NSCalendar *cal = RZCalendar();
     NSDate *best = nil;
     for (RZDataset *ds in self.datasets) {
-        int32_t e = rz_parse_date([ds.end UTF8String]);
-        if (e <= 0) continue;
-        NSDateComponents *c = [[NSDateComponents alloc] init];
-        [c setYear:e / 10000];
-        [c setMonth:(e / 100) % 100];
-        [c setDay:(e % 100) + 1];     /* ważny do końca ostatniego dnia */
-        NSDate *d = [cal dateFromComponents:c];
+        NSDate *d = [self expiryOfDataset:ds];
         if (d && (!best || [d compare:best] == NSOrderedAscending)) best = d;
     }
     return best;
+}
+
+#pragma mark - Sprzątanie plików
+
+- (NSUInteger)fileCount
+{
+    return [[self rawJsonPaths] count];
+}
+
+- (NSUInteger)expiredFileCount
+{
+    NSUInteger n = 0;
+    NSDate *now = [NSDate date];
+    for (RZDataset *ds in self.datasets) {
+        NSDate *d = [self expiryOfDataset:ds];
+        if (d && [d compare:now] != NSOrderedDescending) n++;
+    }
+    return n;
+}
+
+- (NSUInteger)removeAllFiles
+{
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSUInteger n = 0;
+    for (NSString *path in [self rawJsonPaths]) {
+        if ([fm removeItemAtPath:path error:NULL]) n++;
+    }
+    [self reload];
+    return n;
+}
+
+- (NSUInteger)removeExpiredFiles
+{
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSMutableSet *names = [NSMutableSet set];
+    NSDate *now = [NSDate date];
+    for (RZDataset *ds in self.datasets) {
+        NSDate *d = [self expiryOfDataset:ds];
+        if (d && [d compare:now] != NSOrderedDescending) [names addObject:[ds.fileName lowercaseString]];
+    }
+    NSUInteger n = 0;
+    for (NSString *path in [self rawJsonPaths]) {
+        if ([names containsObject:[[path lastPathComponent] lowercaseString]] && [fm removeItemAtPath:path error:NULL]) n++;
+    }
+    if (n) [self reload];
+    return n;
+}
+
+#pragma mark - Ulubione i ustawienia
+
+static NSString *const kFavKey = @"ulubione";
+static NSString *const kLimitKey = @"limit_odjazdow";
+
+static NSString *RZFavID(RZStop *stop, char kind)
+{
+    return [NSString stringWithFormat:@"%c|%@", kind, stop.key];
+}
+
+- (BOOL)isFavoriteStop:(RZStop *)stop kind:(char)kind
+{
+    return [[[NSUserDefaults standardUserDefaults] arrayForKey:kFavKey] containsObject:RZFavID(stop, kind)];
+}
+
+- (void)setFavorite:(BOOL)fav forStop:(RZStop *)stop kind:(char)kind
+{
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    NSMutableArray *a = [NSMutableArray arrayWithArray:[d arrayForKey:kFavKey]];
+    NSString *ident = RZFavID(stop, kind);
+    [a removeObject:ident];
+    if (fav) [a addObject:ident];
+    [d setObject:a forKey:kFavKey];
+    [d synchronize];
+}
+
+- (NSUInteger)favoriteCount
+{
+    return [[[NSUserDefaults standardUserDefaults] arrayForKey:kFavKey] count];
+}
+
+- (void)clearFavorites
+{
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    [d removeObjectForKey:kFavKey];
+    [d synchronize];
+}
+
++ (NSInteger)departureLimit
+{
+    NSInteger n = [[NSUserDefaults standardUserDefaults] integerForKey:kLimitKey];
+    return (n == 10 || n == 20 || n == 30) ? n : 20;
+}
+
++ (void)setDepartureLimit:(NSInteger)n
+{
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    [d setInteger:n forKey:kLimitKey];
+    [d synchronize];
 }
 
 - (NSString *)summary

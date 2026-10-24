@@ -70,8 +70,40 @@ int rz_next(const RZDep *deps, size_t ndeps,
     return count;
 }
 
+int rz_lang = 0;
+
+void rz_set_lang(int lang)
+{
+    rz_lang = (lang == 1 || lang == 2) ? lang : 0;
+}
+
+/* Rosyjska liczba mnoga: 0 = "1 минуту", 1 = "2 минуты", 2 = "5 минут" */
+static int ru_form(int n)
+{
+    int a = n % 10, b = n % 100;
+    if (a == 1 && b != 11) return 0;
+    if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return 1;
+    return 2;
+}
+
 void rz_eta(int m, char *buf, size_t size)
 {
+    if (rz_lang == 1) {                      /* angielski */
+        if (m <= 0) snprintf(buf, size, "departing now");
+        else if (m == 1) snprintf(buf, size, "in 1 minute");
+        else if (m < 60) snprintf(buf, size, "in %d minutes", m);
+        else if (m % 60) snprintf(buf, size, "in %d h %d min", m / 60, m % 60);
+        else snprintf(buf, size, "in %d h", m / 60);
+        return;
+    }
+    if (rz_lang == 2) {                      /* rosyjski */
+        static const char *const mins[3] = { "минуту", "минуты", "минут" };
+        if (m <= 0) snprintf(buf, size, "отправляется сейчас");
+        else if (m < 60) snprintf(buf, size, "через %d %s", m, mins[ru_form(m)]);
+        else if (m % 60) snprintf(buf, size, "через %d ч %d мин", m / 60, m % 60);
+        else snprintf(buf, size, "через %d ч", m / 60);
+        return;
+    }
     if (m <= 0) {
         snprintf(buf, size, "odjeżdża teraz");
     } else if (m == 1) {
@@ -111,9 +143,20 @@ void rz_duration(long seconds, char *buf, size_t size)
         if (w_ > 0 && (size_t)w_ < size - len) len += (size_t)w_; \
         first = 0; } while (0)
 
-    if (d) { RZ_APPEND("%ld %s", d, d == 1 ? "dzień" : "dni"); }
-    if (d || h) { RZ_APPEND("%s%ld godz.", first ? "" : " ", h); }
-    RZ_APPEND("%s%ld min", first ? "" : " ", m);
+    if (rz_lang == 1) {
+        if (d) { RZ_APPEND("%ld %s", d, d == 1 ? "day" : "days"); }
+        if (d || h) { RZ_APPEND("%s%ld h", first ? "" : " ", h); }
+        RZ_APPEND("%s%ld min", first ? "" : " ", m);
+    } else if (rz_lang == 2) {
+        static const char *const days[3] = { "день", "дня", "дней" };
+        if (d) { RZ_APPEND("%ld %s", d, days[ru_form((int)(d % 100000))]); }
+        if (d || h) { RZ_APPEND("%s%ld ч", first ? "" : " ", h); }
+        RZ_APPEND("%s%ld мин", first ? "" : " ", m);
+    } else {
+        if (d) { RZ_APPEND("%ld %s", d, d == 1 ? "dzień" : "dni"); }
+        if (d || h) { RZ_APPEND("%s%ld godz.", first ? "" : " ", h); }
+        RZ_APPEND("%s%ld min", first ? "" : " ", m);
+    }
 #undef RZ_APPEND
 }
 

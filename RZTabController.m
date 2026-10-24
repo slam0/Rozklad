@@ -1,25 +1,27 @@
 #import "RZTabController.h"
+#import "RZLang.h"
 #import "RZSchedule.h"
 #import "RZViews.h"
 #import "RZPickerController.h"
 #import "RZWifiController.h"
+#import "RZStopController.h"
 #import "rz_config.h"
 
-static NSString *const kTicketID = @"ticket";
-static NSString *const kDepID = @"dep";
+static NSString *const kStopID = @"stop";
 static NSString *const kMsgID = @"msg";
 
 @interface RZTabController () <UIActionSheetDelegate>
 @end
 
+/* Lista przystanków jednego rodzaju (autobus, tramwaj, pociąg, metro).
+   Dotknięcie przystanku otwiera osobny ekran z jego odjazdami. */
 @implementation RZTabController {
     char _kind;
     RZMarquee *_marquee;
     NSTimer *_timer;
-    NSArray *_stops;              /* RZStop */
-    NSMutableArray *_rows;        /* dla każdego przystanku: tablica RZDeparture */
-    RZDeparture *_nearest;
-    NSString *_nearestStop;
+    NSArray *_fav;                /* RZStop z gwiazdką */
+    NSArray *_rest;               /* pozostałe wybrane RZStop */
+    NSMutableDictionary *_next;   /* klucz przystanku -> najbliższy RZDeparture */
     NSInteger _nowMinutes;
     NSUInteger _allCount;         /* ile przystanków tego rodzaju jest w pliku */
     UIBarButtonItem *_pickButton;
@@ -31,11 +33,14 @@ static NSString *const kMsgID = @"msg";
     if (self) {
         _kind = kind;
         self.title = title;
-        _stops = [NSArray array];
-        _rows = [NSMutableArray array];
+        _fav = [NSArray array];
+        _rest = [NSArray array];
+        _next = [NSMutableDictionary dictionary];
         NSNotificationCenter *nc = [NSNotificationCenter defaultCenter];
         [nc addObserver:self selector:@selector(scheduleChanged:) name:RZScheduleDidReloadNotification object:nil];
         [nc addObserver:self selector:@selector(appBecameActive:) name:UIApplicationDidBecomeActiveNotification object:nil];
+        [nc addObserver:self selector:@selector(themeChanged:) name:RZThemeDidChangeNotification object:nil];
+        [nc addObserver:self selector:@selector(languageChanged:) name:RZLanguageDidChangeNotification object:nil];
     }
     return self;
 }
@@ -51,18 +56,17 @@ static NSString *const kMsgID = @"msg";
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-    self.tableView.backgroundView = nil;
-    self.tableView.backgroundColor = RZPaperColor();
+    RZStyleTable(self.tableView);
 
     _marquee = [[RZMarquee alloc] initWithFrame:CGRectMake(0, 0, 320, 34)];
     self.tableView.tableHeaderView = _marquee;
 
-    _pickButton = [[UIBarButtonItem alloc] initWithTitle:@"Przystanki"
+    _pickButton = [[UIBarButtonItem alloc] initWithTitle:RZL(@"Przystanki")
                                                    style:UIBarButtonItemStyleBordered
                                                   target:self
                                                   action:@selector(pickTapped)];
     self.navigationItem.rightBarButtonItem =
-        [[UIBarButtonItem alloc] initWithTitle:@"Wczytaj"
+        [[UIBarButtonItem alloc] initWithTitle:RZL(@"Wczytaj")
                                          style:UIBarButtonItemStyleBordered
                                         target:self
                                         action:@selector(loadTapped)];
@@ -73,7 +77,7 @@ static NSString *const kMsgID = @"msg";
     [super viewWillAppear:animated];
     [self rebuild];
     if (!_timer) {
-        _timer = [NSTimer scheduledTimerWithTimeInterval:15.0 target:self selector:@selector(tick) userInfo:nil repeats:YES];
+        _timer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(tick) userInfo:nil repeats:YES];
     }
 }
 
@@ -99,9 +103,9 @@ static NSString *const kMsgID = @"msg";
     if (self.presentedViewController) return;
     UIActionSheet *sheet = [[UIActionSheet alloc] initWithTitle:nil
                                                        delegate:self
-                                              cancelButtonTitle:@"Anuluj"
+                                              cancelButtonTitle:RZL(@"Anuluj")
                                          destructiveButtonTitle:nil
-                                              otherButtonTitles:@"Wybierz przystanki na stronie", @"Odbierz plik przez Wi-Fi", @"Odśwież z plików w telefonie", nil];
+                                              otherButtonTitles:RZL(@"Wybierz przystanki na stronie"), RZL(@"Odbierz plik przez Wi-Fi"), RZL(@"Odśwież z plików w telefonie"), nil];
     [sheet showInView:self.tabBarController ? self.tabBarController.view : self.view];
 }
 
@@ -127,14 +131,16 @@ static NSString *const kMsgID = @"msg";
         site = [[NSUserDefaults standardUserDefaults] stringForKey:@"site_base"];   /* adres z ostatniego pobrania */
     }
     if (![site hasPrefix:@"http"]) {
-        UIAlertView *a = [[UIAlertView alloc] initWithTitle:@"Brak adresu strony"
-                                                    message:@"Otwórz w Safari stronę z rozkładem, wybierz przystanki i dotknij „Otwórz w aplikacji Rozkład”. Potem aplikacja zapamięta adres."
+        UIAlertView *a = [[UIAlertView alloc] initWithTitle:RZL(@"Brak adresu strony")
+                                                    message:RZL(@"Otwórz w Safari stronę z rozkładem, wybierz przystanki i dotknij „Otwórz w aplikacji Rozkład”. Potem aplikacja zapamięta adres.")
                                                    delegate:nil
                                           cancelButtonTitle:@"OK"
                                           otherButtonTitles:nil];
         [a show];
         return;
     }
+    NSString *sep = ([site rangeOfString:@"?"].location == NSNotFound) ? @"?" : @"&";
+    site = [NSString stringWithFormat:@"%@%@lang=%@", site, sep, RZLangCode()];
     [[UIApplication sharedApplication] openURL:[NSURL URLWithString:site]];
 }
 
@@ -182,8 +188,39 @@ static NSString *const kMsgID = @"msg";
     }
 }
 
+/* Raz na sekundę sprawdzamy zegar. Listę liczymy od nowa dopiero, gdy zmieni się minuta. */
 - (void)tick
 {
+    if ([RZSchedule minutesOfDay:[NSDate date]] != _nowMinutes) [self rebuild];
+}
+
+/* Zmiana języka: nowe napisy na przyciskach, w liście i na pasku z ostrzeżeniem. */
+- (void)languageChanged:(NSNotification *)n
+{
+    _pickButton.title = RZL(@"Przystanki");
+    self.navigationItem.rightBarButtonItem.title = RZL(@"Wczytaj");
+    if ([self isViewLoaded]) [self rebuild];
+}
+
+- (void)themeChanged:(NSNotification *)n
+{
+    if ([self isViewLoaded]) {
+        RZStyleTable(self.tableView);
+        [self.tableView reloadData];
+        [_marquee restart];
+    }
+}
+
+#pragma mark - Ulubione
+
+- (void)starTapped:(UIButton *)b
+{
+    CGPoint p = [self.tableView convertPoint:b.center fromView:b.superview];
+    NSIndexPath *ip = [self.tableView indexPathForRowAtPoint:p];
+    RZStop *s = ip ? [self stopAtIndexPath:ip] : nil;
+    if (!s) return;
+    RZSchedule *sc = [RZSchedule shared];
+    [sc setFavorite:![sc isFavoriteStop:s kind:_kind] forStop:s kind:_kind];
     [self rebuild];
 }
 
@@ -192,25 +229,23 @@ static NSString *const kMsgID = @"msg";
 {
     RZSchedule *sc = [RZSchedule shared];
     NSDate *now = [NSDate date];
-    NSUInteger limit = (_kind == 'm') ? 4 : 6;
 
     _allCount = [[sc stopsOfKind:_kind] count];
-    _stops = [sc selectedStopsOfKind:_kind];
+    NSMutableArray *favs = [NSMutableArray array];
+    NSMutableArray *rest = [NSMutableArray array];
+    for (RZStop *st in [sc selectedStopsOfKind:_kind]) {      /* alfabetycznie */
+        if ([sc isFavoriteStop:st kind:_kind]) [favs addObject:st]; else [rest addObject:st];
+    }
+    _fav = favs;
+    _rest = rest;
     self.navigationItem.leftBarButtonItem = _allCount ? _pickButton : nil;
-    _rows = [NSMutableArray arrayWithCapacity:[_stops count]];
-    _nearest = nil;
-    _nearestStop = nil;
     _nowMinutes = [RZSchedule minutesOfDay:now];
 
-    for (RZStop *s in _stops) {
-        NSArray *deps = [sc nextDeparturesForStop:s kind:_kind now:now limit:limit];
-        [_rows addObject:deps];
-        if ([deps count]) {
-            RZDeparture *f = [deps objectAtIndex:0];
-            if (!_nearest || f.time < _nearest.time) {
-                _nearest = f;
-                _nearestStop = s.title;
-            }
+    _next = [NSMutableDictionary dictionaryWithCapacity:[favs count] + [rest count]];
+    for (NSArray *group in [NSArray arrayWithObjects:favs, rest, nil]) {
+        for (RZStop *st in group) {
+            NSArray *deps = [sc nextDeparturesForStop:st kind:_kind now:now limit:1];
+            if ([deps count]) [_next setObject:[deps objectAtIndex:0] forKey:st.key];
         }
     }
 
@@ -225,19 +260,19 @@ static NSString *const kMsgID = @"msg";
     BOOL warning = NO;
 
     if ([sc.datasets count] == 0) {
-        text = @"UWAGA! Brak rozkładu. Dotknij „Wczytaj” i wybierz przystanki na stronie z rozkładem.";
+        text = RZL(@"UWAGA! Brak rozkładu. Dotknij „Wczytaj” i wybierz przystanki na stronie z rozkładem.");
         warning = YES;
     } else {
         NSDate *expiry = [sc expiryDate];
         if (!expiry) {
-            text = @"UWAGA! Nie znam daty ważności rozkładu. Jeśli odjazdy wyglądają na nieaktualne, odśwież rozkład.";
+            text = RZL(@"UWAGA! Nie znam daty ważności rozkładu. Jeśli odjazdy wyglądają na nieaktualne, odśwież rozkład.");
         } else {
             NSTimeInterval left = [expiry timeIntervalSinceNow];
             if (left <= 0) {
-                text = @"UWAGA! Rozkład przeterminował się. Prosimy o odświeżenie rozkładu!";
+                text = RZL(@"UWAGA! Rozkład przeterminował się. Prosimy o odświeżenie rozkładu!");
                 warning = YES;
             } else {
-                text = [NSString stringWithFormat:@"UWAGA! Rozkład przeterminuje się za: %@. Po tym czasie prosimy o odświeżenie rozkładu!",
+                text = [NSString stringWithFormat:RZL(@"UWAGA! Rozkład przeterminuje się za: %@. Po tym czasie prosimy o odświeżenie rozkładu!"),
                         [RZSchedule durationString:left]];
                 warning = left < 7 * 24 * 3600;
             }
@@ -251,10 +286,10 @@ static NSString *const kMsgID = @"msg";
 - (NSString *)kindWord
 {
     switch (_kind) {
-        case 't': return @"tramwajowych";
-        case 'p': return @"kolejowych";
-        case 'm': return @"stacji metra";
-        default:  return @"autobusowych";
+        case 't': return RZL(@"tramwajowych");
+        case 'p': return RZL(@"kolejowych");
+        case 'm': return RZL(@"stacji metra");
+        default:  return RZL(@"autobusowych");
     }
 }
 
@@ -263,38 +298,58 @@ static NSString *const kMsgID = @"msg";
     RZSchedule *sc = [RZSchedule shared];
     if ([sc.datasets count] == 0) {
         NSString *extra = sc.loadError ? [NSString stringWithFormat:@"\n\n%@", sc.loadError] : @"";
-        return [NSString stringWithFormat:@"Brak rozkładu.\n\nDotknij „Wczytaj” u góry i wybierz „Wybierz przystanki na stronie”. Po wybraniu przystanków dotknij tam „Otwórz w aplikacji Rozkład”.\n\nMożesz też wysłać plik rozklad.json z generatora przez Wi-Fi albo skopiować go do folderu:\n%@\n(albo przeciągnąć go do aplikacji w iTunes) i dotknąć „Wczytaj → Odśwież”.%@",
+        return [NSString stringWithFormat:RZL(@"Brak rozkładu.\n\nDotknij „Wczytaj” u góry i wybierz „Wybierz przystanki na stronie”. Po wybraniu przystanków dotknij tam „Otwórz w aplikacji Rozkład”.\n\nMożesz też wysłać plik rozklad.json z generatora przez Wi-Fi albo skopiować go do folderu:\n%@\n(albo przeciągnąć go do aplikacji w iTunes) i dotknąć „Wczytaj → Odśwież”.%@"),
                 [sc folder], extra];
     }
     if (_allCount > 0) {
-        return @"Nie wybrano żadnych przystanków.\n\nDotknij „Przystanki” w lewym górnym rogu i zaznacz te, które chcesz widzieć.";
+        return RZL(@"Nie wybrano żadnych przystanków.\n\nDotknij „Przystanki” w lewym górnym rogu i zaznacz te, które chcesz widzieć.");
     }
-    return [NSString stringWithFormat:@"W wczytanym rozkładzie nie ma przystanków %@.\n\nWygeneruj rozkład z wybranymi przystankami tego rodzaju i skopiuj go na telefon.",
+    return [NSString stringWithFormat:RZL(@"W wczytanym rozkładzie nie ma przystanków %@.\n\nWygeneruj rozkład z wybranymi przystankami tego rodzaju i skopiuj go na telefon."),
             [self kindWord]];
+}
+
+- (BOOL)isEmpty
+{
+    return [_fav count] + [_rest count] == 0;
+}
+
+/* Sekcje: "Ulubione" (jeśli są) i "Przystanki". Gdy nic nie wybrano: jedna sekcja z komunikatem. */
+- (NSArray *)stopsInSection:(NSInteger)section
+{
+    if ([_fav count]) return section == 0 ? _fav : _rest;
+    return _rest;
+}
+
+- (RZStop *)stopAtIndexPath:(NSIndexPath *)ip
+{
+    if ([self isEmpty]) return nil;
+    NSArray *a = [self stopsInSection:ip.section];
+    return ip.row < (NSInteger)[a count] ? [a objectAtIndex:ip.row] : nil;
 }
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView
 {
-    return 1 + [_stops count];
+    if ([self isEmpty]) return 1;
+    return ([_fav count] && [_rest count]) ? 2 : 1;
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-    if (section == 0) return 1;
-    NSArray *deps = [_rows objectAtIndex:section - 1];
-    return [deps count] ? [deps count] : 1;
+    if ([self isEmpty]) return 1;
+    return (NSInteger)[[self stopsInSection:section] count];
 }
 
 - (NSString *)headerTextForSection:(NSInteger)section
 {
-    if (section == 0) return [_stops count] ? @"Najbliższy odjazd" : nil;
-    return ((RZStop *)[_stops objectAtIndex:section - 1]).title;
+    if ([self isEmpty]) return nil;
+    if ([_fav count] && section == 0) return RZL(@"Ulubione");
+    return [_fav count] ? RZL(@"Pozostałe przystanki") : RZL(@"Przystanki");
 }
 
 - (NSString *)footerTextForSection:(NSInteger)section
 {
-    if ([_stops count] && section == (NSInteger)[_stops count]) {
-        return [NSString stringWithFormat:@"Dane: %@", [[RZSchedule shared] summary]];
+    if (![self isEmpty] && section == [self numberOfSectionsInTableView:self.tableView] - 1) {
+        return [NSString stringWithFormat:RZL(@"Dane: %@"), [[RZSchedule shared] summary]];
     }
     return nil;
 }
@@ -323,53 +378,49 @@ static NSString *const kMsgID = @"msg";
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    if (indexPath.section == 0) {
-        if (_nearest) return 118.0f;
-        if ([_stops count]) return 50.0f;
-        return _allCount ? 120.0f : 200.0f;   /* komunikaty o braku danych są długie */
-    }
-    NSArray *deps = [_rows objectAtIndex:indexPath.section - 1];
-    return [deps count] ? 56.0f : 44.0f;
+    if ([self isEmpty]) return ([[RZSchedule shared].datasets count] == 0 || _allCount == 0) ? 220.0f : 120.0f;
+    return 58.0f;
 }
 
-- (UITableViewCell *)messageCellWithText:(NSString *)text font:(UIFont *)font color:(UIColor *)color
+- (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    UITableViewCell *cell = [self.tableView dequeueReusableCellWithIdentifier:kMsgID];
-    if (!cell) {
-        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:kMsgID];
-        cell.selectionStyle = UITableViewCellSelectionStyleNone;
-        cell.textLabel.numberOfLines = 0;
-        cell.textLabel.lineBreakMode = NSLineBreakByWordWrapping;
-    }
-    cell.textLabel.font = font;
-    cell.textLabel.textColor = color;
-    cell.textLabel.text = text;
-    return cell;
+    RZStyleCell(cell);
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    if (indexPath.section == 0) {
-        if (_nearest) {
-            RZTicketCell *cell = (RZTicketCell *)[tableView dequeueReusableCellWithIdentifier:kTicketID];
-            if (!cell) cell = [[RZTicketCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:kTicketID];
-            [cell setDeparture:_nearest stopName:_nearestStop nowMinutes:_nowMinutes];
-            return cell;
+    if ([self isEmpty]) {
+        UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:kMsgID];
+        if (!cell) {
+            cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:kMsgID];
+            cell.selectionStyle = UITableViewCellSelectionStyleNone;
+            cell.textLabel.numberOfLines = 0;
+            cell.textLabel.lineBreakMode = NSLineBreakByWordWrapping;
+            cell.textLabel.font = [UIFont systemFontOfSize:15.0f];
         }
-        NSString *msg = [_stops count] ? @"Brak odjazdów w najbliższym czasie." : [self emptyMessage];
-        return [self messageCellWithText:msg font:[UIFont systemFontOfSize:15.0f] color:[UIColor darkGrayColor]];
+        cell.textLabel.textColor = RZCellTextColor();
+        cell.textLabel.text = [self emptyMessage];
+        return cell;
     }
 
-    NSArray *deps = [_rows objectAtIndex:indexPath.section - 1];
-    if (![deps count]) {
-        NSString *hours = (_kind == 'p') ? @"24 godzinach" : @"12 godzinach";
-        return [self messageCellWithText:[NSString stringWithFormat:@"Brak odjazdów w najbliższych %@.", hours]
-                                    font:[UIFont systemFontOfSize:14.0f] color:[UIColor grayColor]];
+    RZStop *s = [self stopAtIndexPath:indexPath];
+    RZStopCell *cell = (RZStopCell *)[tableView dequeueReusableCellWithIdentifier:kStopID];
+    if (!cell) {
+        cell = [[RZStopCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:kStopID];
+        [cell.star addTarget:self action:@selector(starTapped:) forControlEvents:UIControlEventTouchUpInside];
     }
-    RZDepartureCell *cell = (RZDepartureCell *)[tableView dequeueReusableCellWithIdentifier:kDepID];
-    if (!cell) cell = [[RZDepartureCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:kDepID];
-    [cell setDeparture:[deps objectAtIndex:indexPath.row] nowMinutes:_nowMinutes];
+    BOOL fav = [[RZSchedule shared] isFavoriteStop:s kind:_kind];
+    [cell setTitle:s.title departure:[_next objectForKey:s.key] nowMinutes:_nowMinutes favorite:fav];
     return cell;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+    RZStop *s = [self stopAtIndexPath:indexPath];
+    if (!s) return;
+    RZStopController *vc = [[RZStopController alloc] initWithStopKey:s.key kind:_kind title:s.title];
+    [self.navigationController pushViewController:vc animated:YES];
 }
 
 @end

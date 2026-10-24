@@ -76,12 +76,32 @@ static inline unsigned RZKindBit(char kind)
 - (NSString *)descriptionForStop:(RZStop *)stop kind:(char)kind;
 - (NSArray *)nextDeparturesForStop:(RZStop *)stop kind:(char)kind now:(NSDate *)now limit:(NSUInteger)limit;
 
+/* Ulubione przystanki (gwiazdka): zapamiętywane w telefonie, wyświetlane na górze listy */
+- (BOOL)isFavoriteStop:(RZStop *)stop kind:(char)kind;
+- (void)setFavorite:(BOOL)fav forStop:(RZStop *)stop kind:(char)kind;
+- (NSUInteger)favoriteCount;
+- (void)clearFavorites;
+
+/* Ile odjazdów pokazywać na ekranie przystanku (10, 20 lub 30) */
++ (NSInteger)departureLimit;
++ (void)setDepartureLimit:(NSInteger)n;
+
+/* Sprzątanie plików z rozkładami. Zwracają liczbę usuniętych plików i wczytują dane od nowa. */
+- (NSUInteger)removeAllFiles;
+- (NSUInteger)removeExpiredFiles;
+/* Ile plików .json leży w folderach aplikacji i ile z nich jest przeterminowanych */
+- (NSUInteger)fileCount;
+- (NSUInteger)expiredFileCount;
+
 /* Koniec ważności najwcześniej kończącego się rozkładu (koniec ostatniego dnia) lub nil */
 - (NSDate *)expiryDate;
 /* Krótki opis wczytanych danych, np. "rozklad.json (2026-10-22)" */
 - (NSString *)summary;
 
 + (NSInteger)minutesOfDay:(NSDate *)date;
++ (NSInteger)secondsOfDay:(NSDate *)date;
+/* Odliczanie do odjazdu w sekundach, np. "za 4 min 20 s" (poniżej 10 minut), inaczej jak etaString */
++ (NSString *)countdownString:(NSInteger)secondsLeft;
 + (NSString *)etaString:(NSInteger)minutes;
 + (NSString *)clockString:(NSInteger)time;
 + (NSString *)durationString:(NSTimeInterval)seconds;

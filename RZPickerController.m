@@ -1,4 +1,5 @@
 #import "RZPickerController.h"
+#import "RZLang.h"
 #import "RZSchedule.h"
 #import "RZViews.h"
 
@@ -24,7 +25,7 @@
         _details = det;
         _chosen = [NSMutableSet set];
         for (RZStop *s in [sc selectedStopsOfKind:kind]) [_chosen addObject:s.key];
-        self.title = @"Przystanki";
+        self.title = RZL(@"Przystanki");
     }
     return self;
 }
@@ -32,14 +33,13 @@
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-    self.tableView.backgroundView = nil;
-    self.tableView.backgroundColor = RZPaperColor();
+    RZStyleTable(self.tableView);
 
     _toggle = [[UIBarButtonItem alloc] initWithTitle:@"" style:UIBarButtonItemStyleBordered
                                               target:self action:@selector(toggleAll)];
     self.navigationItem.leftBarButtonItem = [_stops count] ? _toggle : nil;
     self.navigationItem.rightBarButtonItem =
-        [[UIBarButtonItem alloc] initWithTitle:@"Gotowe" style:UIBarButtonItemStyleDone
+        [[UIBarButtonItem alloc] initWithTitle:RZL(@"Gotowe") style:UIBarButtonItemStyleDone
                                         target:self action:@selector(doneTapped)];
     [self updateToggleTitle];
 }
@@ -51,7 +51,7 @@
 
 - (void)updateToggleTitle
 {
-    _toggle.title = [self allChosen] ? @"Żadne" : @"Wszystkie";
+    _toggle.title = [self allChosen] ? RZL(@"Żadne") : RZL(@"Wszystkie");
 }
 
 - (void)toggleAll
@@ -93,8 +93,8 @@
 - (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section
 {
     return RZSectionHeaderView([_stops count]
-        ? @"Zaznacz przystanki, które chcesz widzieć:"
-        : @"Brak przystanków");
+        ? RZL(@"Zaznacz przystanki, które chcesz widzieć:")
+        : RZL(@"Brak przystanków"));
 }
 
 - (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section
@@ -114,12 +114,12 @@
     if (!cell) {
         cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:ident];
         cell.textLabel.font = [UIFont boldSystemFontOfSize:17.0f];
-        cell.textLabel.textColor = RZInkColor();
         cell.detailTextLabel.font = [UIFont systemFontOfSize:12.0f];
-        cell.detailTextLabel.textColor = [UIColor grayColor];
     }
+    cell.textLabel.textColor = RZCellTextColor();
+    cell.detailTextLabel.textColor = RZSubtleColor();
     if (![_stops count]) {
-        cell.textLabel.text = @"W wczytanym rozkładzie nie ma tego rodzaju przystanków.";
+        cell.textLabel.text = RZL(@"W wczytanym rozkładzie nie ma tego rodzaju przystanków.");
         cell.textLabel.numberOfLines = 0;
         cell.detailTextLabel.text = nil;
         cell.accessoryType = UITableViewCellAccessoryNone;
@@ -133,6 +133,11 @@
     cell.accessoryType = [_chosen containsObject:s.key] ? UITableViewCellAccessoryCheckmark : UITableViewCellAccessoryNone;
     cell.selectionStyle = UITableViewCellSelectionStyleBlue;
     return cell;
+}
+
+- (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    RZStyleCell(cell);
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath

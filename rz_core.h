@@ -53,6 +53,10 @@ int rz_next(const RZDep *deps, size_t ndeps,
             RZNext *out, int limit);
 
 /* Teksty po polsku (UTF-8). */
+/* Język tekstów: 0 polski (domyślnie), 1 angielski, 2 rosyjski */
+extern int rz_lang;
+void rz_set_lang(int lang);
+
 void rz_eta(int minutes, char *buf, size_t size);        /* "za 5 minut" */
 void rz_clock(int time, char *buf, size_t size);         /* "10:44" */
 void rz_duration(long seconds, char *buf, size_t size);  /* "20 dni 13 godz. 24 min" */

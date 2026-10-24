@@ -1,5 +1,6 @@
 #include "rz_http.h"
 #include "rz_page.h"
+#include "rz_core.h"
 
 #include <arpa/inet.h>
 #include <errno.h>
@@ -81,6 +82,12 @@ static const char *find_ci(const char *h, const char *needle)
     return NULL;
 }
 
+/* tekst w języku aplikacji (0 pl, 1 en, 2 ru) */
+static const char *L(const char *pl, const char *en, const char *ru)
+{
+    return rz_lang == 1 ? en : (rz_lang == 2 ? ru : pl);
+}
+
 /* ---------- obsługa jednego połączenia ---------- */
 
 static void handle(int fd)
@@ -101,7 +108,7 @@ static void handle(int fd)
     size_t have = 0;
     char *end = NULL;
     while (!end) {
-        if (have >= RZ_MAX_HEADER) { text(fd, 431, "Request Header Fields Too Large", "Za długie nagłówki."); free(hdr); return; }
+        if (have >= RZ_MAX_HEADER) { text(fd, 431, "Request Header Fields Too Large", L("Za długie nagłówki.", "Headers are too long.", "Слишком длинные заголовки.")); free(hdr); return; }
         ssize_t k = recv(fd, hdr + have, RZ_MAX_HEADER - have, 0);
         if (k < 0 && errno == EINTR) continue;
         if (k <= 0) { free(hdr); return; }
@@ -115,7 +122,7 @@ static void handle(int fd)
 
     char method[16] = "", path[256] = "";
     if (sscanf(hdr, "%15s %255s", method, path) != 2) {
-        text(fd, 400, "Bad Request", "Niepoprawne żądanie.");
+        text(fd, 400, "Bad Request", L("Niepoprawne żądanie.", "Invalid request.", "Некорректный запрос."));
         free(hdr);
         return;
     }
@@ -123,18 +130,19 @@ static void handle(int fd)
     if (strcmp(method, "OPTIONS") == 0) {
         respond(fd, 204, "No Content", "text/plain", "");
     } else if (strcmp(method, "GET") == 0 && (strcmp(path, "/") == 0 || strncmp(path, "/index", 6) == 0)) {
-        respond(fd, 200, "OK", "text/html; charset=utf-8", RZ_PAGE);
+        respond(fd, 200, "OK", "text/html; charset=utf-8",
+                rz_lang == 1 ? RZ_PAGE_EN : (rz_lang == 2 ? RZ_PAGE_RU : RZ_PAGE));
     } else if (strcmp(method, "POST") == 0 && strcmp(path, "/upload") == 0) {
         const char *cl = find_ci(hdr, "\ncontent-length:");
         unsigned long len = cl ? strtoul(cl + 16, NULL, 10) : 0;
         if (!cl || len == 0) {
-            text(fd, 411, "Length Required", "Brak pliku w żądaniu.");
+            text(fd, 411, "Length Required", L("Brak pliku w żądaniu.", "No file in the request.", "В запросе нет файла."));
         } else if (len > RZ_MAX_BODY) {
-            text(fd, 413, "Payload Too Large", "Plik jest za duży.");
+            text(fd, 413, "Payload Too Large", L("Plik jest za duży.", "The file is too large.", "Файл слишком большой."));
         } else {
             char *body = (char *)malloc(len + 1);
             if (!body) {
-                text(fd, 500, "Internal Server Error", "Za mało pamięci w telefonie.");
+                text(fd, 500, "Internal Server Error", L("Za mało pamięci w telefonie.", "Not enough memory on the phone.", "Не хватает памяти в телефоне."));
             } else {
                 size_t got = extra < len ? extra : len;
                 memcpy(body, hdr + head_len, got);
@@ -146,13 +154,13 @@ static void handle(int fd)
                     got += (size_t)k;
                 }
                 if (!ok) {
-                    text(fd, 400, "Bad Request", "Plik doszedł niekompletny. Spróbuj jeszcze raz.");
+                    text(fd, 400, "Bad Request", L("Plik doszedł niekompletny. Spróbuj jeszcze raz.", "The file arrived incomplete. Try again.", "Файл пришёл не полностью. Попробуйте ещё раз."));
                 } else {
                     body[len] = 0;
                     char err[200] = "";
                     int r = g_fn ? g_fn(body, len, g_ctx, err, sizeof err) : 1;
-                    if (r == 0) text(fd, 200, "OK", "Gotowe: telefon odebrał rozkład.");
-                    else text(fd, 400, "Bad Request", err[0] ? err : "Telefon nie przyjął pliku.");
+                    if (r == 0) text(fd, 200, "OK", L("Gotowe: telefon odebrał rozkład.", "Done: the phone received the timetable.", "Готово: телефон получил расписание."));
+                    else text(fd, 400, "Bad Request", err[0] ? err : L("Telefon nie przyjął pliku.", "The phone did not accept the file.", "Телефон не принял файл."));
                 }
                 free(body);
             }

@@ -54,45 +54,137 @@ li button[data-r]{border-color:#6d0715;background-color:#c8102e;background-image
 #fin p{margin:0 0 6px}
 #warn{margin:12px 4px 0;font-weight:bold;color:#a60f25}
 #warn:empty{display:none}
+#langs{position:absolute;top:9px;right:12px;z-index:3;font-size:12px}
+#langs a{display:inline-block;margin-left:5px;padding:3px 8px;color:#f6ecd8;text-decoration:none;font-weight:bold;border:1px solid rgba(246,226,186,.55);border-radius:10px;text-shadow:0 -1px 0 rgba(0,0,0,.6);cursor:pointer}
+#langs a.on{color:#4a2e1a;text-shadow:0 1px 0 rgba(255,255,255,.5);background:#f1dfba;border-color:#f1dfba}
 #dl{margin-top:10px}
 </style></head><body>
-<header><div class="hd"><div><img src="icon.png" alt=""></div><div><b>Rozkład</b><span>wybierz przystanki i otwórz je w aplikacji</span></div></div></header>
+<header><div id="langs"></div><div class="hd"><div><img src="icon.png" alt=""></div><div><b>Rozkład</b><span data-t="sub"></span></div></div></header>
 <div class="wrap">
-<p class="lead">Wybierz przystanki w czterech krokach (autobus, tramwaj, pociąg, metro). Na końcu dotknij „Otwórz w aplikacji Rozkład” – aplikacja sama pobierze rozkład tych przystanków.</p>
+<p class="lead" data-t="lead"></p>
 
-<div class="gl">Dane rozkładowe</div>
-<div class="grp pad"><div id="msg">Ładuję listę przystanków…</div><div id="again" hidden><button class="btn" id="retry" style="margin-top:10px;width:100%">Spróbuj jeszcze raz</button></div></div>
+<div class="gl" data-t="gl_data"></div>
+<div class="grp pad"><div id="msg"></div><div id="again" hidden><button class="btn" id="retry" style="margin-top:10px;width:100%" data-t="retry"></button></div></div>
 <p class="note" id="age"></p>
 
 <section id="wiz" hidden>
 <div id="steps"></div>
 <div class="gl" id="ph"></div>
 <p class="note" id="pd"></p>
-<div class="grp pad"><input type="text" id="q" placeholder="Zacznij pisać nazwę przystanku…" autocomplete="off" autocorrect="off" autocapitalize="off"></div>
+<div class="grp pad"><input type="text" id="q" placeholder="" autocomplete="off" autocorrect="off" autocapitalize="off"></div>
 <ul id="res" class="grp"></ul>
-<div class="gl">Wybrane w tym kroku: <span id="cnt">0</span>/10</div>
+<div class="gl"><span data-t="chosen_step"></span> <span id="cnt">0</span>/10</div>
 <ul id="sel" class="grp"></ul>
-<div class="nav"><button class="btn" id="back">← Wstecz</button><button class="btn red" id="next">Dalej →</button></div>
+<div class="nav"><button class="btn" id="back" data-t="back"></button><button class="btn red" id="next" data-t="next"></button></div>
 <div id="fin" class="grp pad" hidden>
 <p id="sum"></p>
-<a class="btn red" id="open" href="#">Otwórz w aplikacji Rozkład</a>
-<p class="note" style="margin:10px 0 0">Jeśli nic się nie dzieje, sprawdź, czy aplikacja Rozkład jest zainstalowana na tym telefonie.</p>
-<div id="dl" hidden><button class="btn" id="get">Pobierz plik rozklad.json (na komputer)</button><div id="warn"></div></div>
+<a class="btn red" id="open" href="#" data-t="open"></a>
+<p class="note" style="margin:10px 0 0" data-t="open_note"></p>
+<div id="dl" hidden><button class="btn" id="get" data-t="get_btn"></button><div id="warn"></div></div>
 </div>
 </section>
-<p class="note" style="margin-top:26px;text-align:center">Dane rozkładowe: ZTM Warszawa (GTFS), udostępnia mkuran.pl. Rozkład może być nieaktualny, sprawdzaj datę ważności.</p>
+<p class="note" style="margin-top:26px;text-align:center" data-t="foot"></p>
 </div>
 <script>
 (function(){
 var KINDS=[
-  {k:'b',bit:1,name:'Autobusy',desc:'przystanki autobusowe',col:'#c8102e'},
-  {k:'t',bit:2,name:'Tramwaje',desc:'przystanki tramwajowe',col:'#2a73d6'},
-  {k:'p',bit:4,name:'Pociągi',desc:'stacje i przystanki kolejowe',col:'#2f8a3a'},
-  {k:'m',bit:8,name:'Metro',desc:'stacje metra',col:'#1f3a8f'}];
+  {k:'b',bit:1,col:'#c8102e'},
+  {k:'t',bit:2,col:'#2a73d6'},
+  {k:'p',bit:4,col:'#2f8a3a'},
+  {k:'m',bit:8,col:'#1f3a8f'}];
 var KB={b:1,t:2,p:4,m:8};
 var MAX=10,IDX=null,G=[],chosen={b:[],t:[],p:[],m:[]},step=0;
 var BASE=location.href.replace(/[?#].*$/,'').replace(/[^\/]*$/,'');
 var $=function(i){return document.getElementById(i)};
+
+/* ---------- języki: polski, angielski, rosyjski ---------- */
+var I={
+pl:{title:'Rozkład – wybór przystanków',sub:'wybierz przystanki i otwórz je w aplikacji',
+ lead:'Wybierz przystanki w czterech krokach (autobus, tramwaj, pociąg, metro). Na końcu dotknij „Otwórz w aplikacji Rozkład” – aplikacja sama pobierze rozkład tych przystanków.',
+ gl_data:'Dane rozkładowe',retry:'Spróbuj jeszcze raz',ph_q:'Zacznij pisać nazwę przystanku…',chosen_step:'Wybrane w tym kroku:',
+ back:'← Wstecz',next:'Dalej →',open:'Otwórz w aplikacji Rozkład',
+ open_note:'Jeśli nic się nie dzieje, sprawdź, czy aplikacja Rozkład jest zainstalowana na tym telefonie.',
+ get_btn:'Pobierz plik rozklad.json (na komputer)',
+ foot:'Dane rozkładowe: ZTM Warszawa (GTFS), udostępnia mkuran.pl. Rozkład może być nieaktualny, sprawdzaj datę ważności.',
+ loading:'Ładuję listę przystanków…',loading_kb:'Ładuję listę przystanków… {0} KB',
+ loaded:'Wczytano przystanków: {0}. Przejdź przez cztery kroki poniżej.',
+ age_gen:'Dane z dnia {0}',age_end:', rozkład ważny do {0}',age_exp:'UWAGA: ten rozkład już wygasł, poczekaj na nowe dane.',
+ err_data:'Błąd w danych: {0}',err_list:'Nie udało się pobrać listy przystanków (kod {0}). Sprawdź połączenie z internetem.',
+ err_file:'Nie udało się pobrać pliku {0} (kod {1}).',
+ k_b:'Autobusy',k_t:'Tramwaje',k_p:'Pociągi',k_m:'Metro',
+ d_b:'przystanki autobusowe',d_t:'przystanki tramwajowe',d_p:'stacje i przystanki kolejowe',d_m:'stacje metra',
+ sel_short:'wybr.',step:'Krok {0} z 4: {1}',
+ pd:'Wyszukaj {0} i dodaj je do listy (maks. {1}). Jeśli nie potrzebujesz tego rodzaju, po prostu dotknij „Dalej”.',
+ sum:'Razem wybrano: {0} ({1}), słupków: {2}.',sum0:'Nie wybrano jeszcze żadnego przystanku. Wróć do któregoś z kroków.',
+ poles:'({0} słup.: {1})',map:'mapa',nores:'Brak wyników dla „{0}” wśród przystanków tego rodzaju',
+ err_search:'Błąd wyszukiwania: {0}',dl_progress:'Pobieram {0}/{1}…',dl_done:'Gotowe: rozklad.json, {0} KB.',dl_err:'Błąd: {0}'},
+en:{title:'Rozkład – choose stops',sub:'choose stops and open them in the app',
+ lead:'Choose stops in four steps (bus, tram, train, metro). At the end tap “Open in the Rozkład app” – the app will download the timetable for these stops by itself.',
+ gl_data:'Timetable data',retry:'Try again',ph_q:'Stop name…',chosen_step:'Chosen in this step:',
+ back:'← Back',next:'Next →',open:'Open in the Rozkład app',
+ open_note:'If nothing happens, check that the Rozkład app is installed on this phone.',
+ get_btn:'Download the rozklad.json file (to a computer)',
+ foot:'Timetable data: ZTM Warszawa (GTFS), provided by mkuran.pl. The timetable may be out of date, check the expiry date.',
+ loading:'Loading the stop list…',loading_kb:'Loading the stop list… {0} KB',
+ loaded:'Loaded stops: {0}. Go through the four steps below.',
+ age_gen:'Data from {0}',age_end:', timetable valid until {0}',age_exp:'ATTENTION: this timetable has already expired, wait for new data.',
+ err_data:'Error in the data: {0}',err_list:'Could not download the stop list (code {0}). Check your internet connection.',
+ err_file:'Could not download the file {0} (code {1}).',
+ k_b:'Buses',k_t:'Trams',k_p:'Trains',k_m:'Metro',
+ d_b:'bus stops',d_t:'tram stops',d_p:'railway stations and stops',d_m:'metro stations',
+ sel_short:'sel.',step:'Step {0} of 4: {1}',
+ pd:'Search for {0} and add them to the list (max {1}). If you do not need this kind, just tap “Next”.',
+ sum:'Chosen in total: {0} ({1}), stop points: {2}.',sum0:'No stop chosen yet. Go back to one of the steps.',
+ poles:'({0} stop pts: {1})',map:'map',nores:'No results for “{0}” among stops of this kind',
+ err_search:'Search error: {0}',dl_progress:'Downloading {0}/{1}…',dl_done:'Done: rozklad.json, {0} KB.',dl_err:'Error: {0}'},
+ru:{title:'Rozkład – выбор остановок',sub:'выберите остановки и откройте их в приложении',
+ lead:'Выберите остановки за четыре шага (автобус, трамвай, поезд, метро). В конце нажмите «Открыть в приложении Rozkład» – приложение само загрузит расписание этих остановок.',
+ gl_data:'Данные расписания',retry:'Попробовать ещё раз',ph_q:'Название остановки…',chosen_step:'Выбрано на этом шаге:',
+ back:'← Назад',next:'Далее →',open:'Открыть в приложении Rozkład',
+ open_note:'Если ничего не происходит, проверьте, что приложение Rozkład установлено на этом телефоне.',
+ get_btn:'Скачать файл rozklad.json (на компьютер)',
+ foot:'Данные расписания: ZTM Warszawa (GTFS), предоставляет mkuran.pl. Расписание может быть неактуальным, проверяйте дату действия.',
+ loading:'Загружаю список остановок…',loading_kb:'Загружаю список остановок… {0} КБ',
+ loaded:'Загружено остановок: {0}. Пройдите четыре шага ниже.',
+ age_gen:'Данные от {0}',age_end:', расписание действует до {0}',age_exp:'ВНИМАНИЕ: это расписание уже устарело, дождитесь новых данных.',
+ err_data:'Ошибка в данных: {0}',err_list:'Не удалось загрузить список остановок (код {0}). Проверьте подключение к интернету.',
+ err_file:'Не удалось загрузить файл {0} (код {1}).',
+ k_b:'Автобусы',k_t:'Трамваи',k_p:'Поезда',k_m:'Метро',
+ d_b:'автобусные остановки',d_t:'трамвайные остановки',d_p:'железнодорожные станции и остановки',d_m:'станции метро',
+ sel_short:'выбр.',step:'Шаг {0} из 4: {1}',
+ pd:'Найдите {0} и добавьте их в список (макс. {1}). Если этот тип вам не нужен, просто нажмите «Далее».',
+ sum:'Всего выбрано: {0} ({1}), остановочных пунктов: {2}.',sum0:'Остановки ещё не выбраны. Вернитесь к одному из шагов.',
+ poles:'({0} ост. пунктов: {1})',map:'карта',nores:'Нет результатов для «{0}» среди остановок этого типа',
+ err_search:'Ошибка поиска: {0}',dl_progress:'Загружаю {0}/{1}…',dl_done:'Готово: rozklad.json, {0} КБ.',dl_err:'Ошибка: {0}'}
+};
+var LANG='pl',SAY=null;
+function t(k,a){var s=(I[LANG]&&I[LANG][k])||I.pl[k]||k,i;
+  if(a)for(i=0;i<a.length;i++)s=s.split('{'+i+'}').join(a[i]);
+  return s}
+function detectLang(){
+  var m=/[?&]lang=(pl|en|ru)/.exec(location.search),s,n;
+  if(m)return m[1];
+  try{s=localStorage.getItem('rzlang');if(s&&I[s])return s}catch(e){}
+  n=String(navigator.language||navigator.userLanguage||'pl').toLowerCase().slice(0,2);
+  return n==='ru'?'ru':(n==='pl'?'pl':'en')}
+function ageText(){
+  var today=new Date(),ymd=''+today.getFullYear()+p2(today.getMonth()+1)+p2(today.getDate()),s;
+  if(!IDX){$('age').textContent='';return}
+  s=t('age_gen',[IDX.gen])+(IDX.end?t('age_end',[dmy(IDX.end)]):'')+'.';
+  if(IDX.end&&IDX.end<ymd)s+=' '+t('age_exp');
+  $('age').textContent=s}
+function setLang(l){
+  var els=document.querySelectorAll('[data-t]'),i,h='',L=['pl','en','ru'];
+  LANG=l;
+  for(i=0;i<els.length;i++)els[i].textContent=t(els[i].getAttribute('data-t'));
+  $('q').placeholder=t('ph_q');
+  document.title=t('title');
+  document.documentElement.lang=l;
+  for(i=0;i<L.length;i++)h+='<a data-l="'+L[i]+'"'+(L[i]===l?' class="on"':'')+'>'+L[i].toUpperCase()+'</a>';
+  $('langs').innerHTML=h;
+  if(SAY)say(SAY[0],SAY[1],SAY[2]);
+  ageText();
+  if(IDX)render()}
 
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return '&#'+c.charCodeAt(0)+';'})}
 var MAP={};(function(){var g={a:'ąáàâäãåā',c:'ćč',d:'ď',e:'éèêëęě',i:'íìîï',l:'ł',n:'ńňñ',o:'óòôöõő',r:'ř',s:'śš',t:'ť',u:'úùûüůű',y:'ý',z:'źžż'},k,i;
@@ -100,7 +192,7 @@ var MAP={};(function(){var g={a:'ąáàâäãåā',c:'ćč',d:'ď',e:'éèêëę
 function nz(s){var o='',i,c;s=String(s).toLowerCase();
   for(i=0;i<s.length;i++){c=s.charAt(i);o+=MAP[c]||c}
   return o}
-function say(t,bad){var m=$('msg');m.textContent=t;m.className=bad?'bad':''}
+function say(k,a,bad){var m=$('msg');SAY=[k,a,bad];m.textContent=t(k,a);m.className=bad?'bad':''}
 function p2(n){return n<10?'0'+n:''+n}
 function dmy(s){return s&&s.length===8?s.slice(6,8)+'.'+s.slice(4,6)+'.'+s.slice(0,4):''}
 
@@ -120,7 +212,7 @@ function getAll(urls,cb,prog){
     while(!err&&active<5&&i<urls.length){(function(n){
       active++;
       get(urls[n],function(t){out[n]=t;active--;done++;prog(done,urls.length);pump()},
-        function(s){if(!err)err='Nie udało się pobrać pliku '+urls[n]+' (kod '+s+').';active--;pump()})
+        function(s){if(!err)err=[urls[n],s];active--;pump()})
     })(i++)}
     if(active===0&&!fin&&(err||done===urls.length)){fin=true;cb(err,out)}}
   pump()}
@@ -138,25 +230,24 @@ function restore(){try{
 
 /* ---------- wczytanie listy przystanków ---------- */
 function load(){
-  $('wiz').hidden=true;$('again').hidden=true;say('Ładuję listę przystanków…');
+  $('wiz').hidden=true;$('again').hidden=true;say('loading');
   get('index.json?t='+(+new Date()),function(t){
     try{
       IDX=JSON.parse(t);G=IDX.g;
       restore();
-      var today=new Date(),ymd=''+today.getFullYear()+p2(today.getMonth()+1)+p2(today.getDate());
-      say('Wczytano przystanków: '+G.length+'. Przejdź przez cztery kroki poniżej.');
-      $('age').textContent='Dane z dnia '+IDX.gen+(IDX.end?', rozkład ważny do '+dmy(IDX.end):'')+'.'+(IDX.end&&IDX.end<ymd?' UWAGA: ten rozkład już wygasł, poczekaj na nowe dane.':'');
+      say('loaded',[G.length]);
+      ageText();
       $('wiz').hidden=false;render();
-    }catch(e){say('Błąd w danych: '+e.message,true);$('again').hidden=false}
+    }catch(e){say('err_data',[e.message],true);$('again').hidden=false}
   },function(s){
-    say('Nie udało się pobrać listy przystanków (kod '+s+'). Sprawdź połączenie z internetem.',true);$('again').hidden=false
-  },function(n){say('Ładuję listę przystanków… '+Math.round(n/1024)+' KB')})}
+    say('err_list',[s],true);$('again').hidden=false
+  },function(n){say('loading_kb',[Math.round(n/1024)])})}
 $('retry').onclick=load;
 
 /* ---------- kroki ---------- */
 function info(g,bit){
   var ps=g[5].filter(function(p){return p[2]&bit});
-  return esc(g[0])+' <small>('+ps.length+' słup.: '+esc(ps.map(function(p){return p[1]}).join(', '))+')</small>'+(g[3]?' <a href="https://www.openstreetmap.org/?mlat='+g[3]+'&amp;mlon='+g[4]+'&amp;zoom=17" target="_blank">mapa</a>':'')}
+  return esc(g[0])+' <small>'+t('poles',[ps.length,esc(ps.map(function(p){return p[1]}).join(', '))])+'</small>'+(g[3]?' <a href="https://www.openstreetmap.org/?mlat='+g[3]+'&amp;mlon='+g[4]+'&amp;zoom=17" target="_blank">'+t('map')+'</a>':'')}
 function total(){return KINDS.reduce(function(n,K){return n+chosen[K.k].length},0)}
 function plan(){
   var m={},order=[];
@@ -169,11 +260,11 @@ function link(){
   var pl=plan();
   return 'rozklad://import?u='+encodeURIComponent(BASE)+'&v='+IDX.v+'&p='+pl.map(function(x){return x[0]+'.'+x[1]}).join(',')}
 function render(){
-  var K=KINDS[step],list=chosen[K.k],t,pl;
+  var K=KINDS[step],list=chosen[K.k],tot,pl;
   $('steps').innerHTML=KINDS.map(function(X,n){
-    return '<div class="st'+(n===step?' on':'')+'" data-s="'+n+'"><i style="background:'+X.col+'">'+(n+1)+'</i>'+X.name+'<small>'+chosen[X.k].length+' wybr.</small></div>'}).join('');
-  $('ph').textContent='Krok '+(step+1)+' z 4: '+K.name;
-  $('pd').textContent='Wyszukaj '+K.desc+' i dodaj je do listy (maks. '+MAX+'). Jeśli nie potrzebujesz tego rodzaju, po prostu dotknij „Dalej”.';
+    return '<div class="st'+(n===step?' on':'')+'" data-s="'+n+'"><i style="background:'+X.col+'">'+(n+1)+'</i>'+t('k_'+X.k)+'<small>'+chosen[X.k].length+' '+t('sel_short')+'</small></div>'}).join('');
+  $('ph').textContent=t('step',[step+1,t('k_'+K.k)]);
+  $('pd').textContent=t('pd',[t('d_'+K.k),MAX]);
   $('sel').innerHTML=list.map(function(g,n){return '<li><button data-r="'+n+'">×</button> '+info(g,K.bit)+'</li>'}).join('');
   $('cnt').textContent=list.length;
   $('q').disabled=list.length>=MAX;$('q').value='';$('res').innerHTML='';
@@ -182,11 +273,11 @@ function render(){
   $('back').style.width=step===3?'100%':'';
   $('fin').hidden=step!==3;
   if(step===3){
-    t=total();pl=plan();
-    $('sum').textContent=t?'Razem wybrano: '+t+' ('+KINDS.map(function(X){return X.name.toLowerCase()+' '+chosen[X.k].length}).join(', ')+'), słupków: '+pl.length+'.':'Nie wybrano jeszcze żadnego przystanku. Wróć do któregoś z kroków.';
-    $('open').style.display=t?'':'none';
-    if(t)$('open').href=link();
-    $('dl').hidden=!(t&&canDownload());
+    tot=total();pl=plan();
+    $('sum').textContent=tot?t('sum',[tot,KINDS.map(function(X){return t('k_'+X.k).toLowerCase()+' '+chosen[X.k].length}).join(', '),pl.length]):t('sum0');
+    $('open').style.display=tot?'':'none';
+    if(tot)$('open').href=link();
+    $('dl').hidden=!(tot&&canDownload());
     $('warn').textContent='';
   }
   save()}
@@ -197,17 +288,17 @@ $('back').onclick=function(){if(step>0){step--;render()}};
 $('next').onclick=function(){if(step<3){step++;render()}};
 $('q').oninput=function(){
   try{
-    var K=KINDS[step],t=nz(this.value).replace(/^\s+|\s+$/g,''),h='',n=0,i,g,k,pass,hit;
-    if(t.length>1&&chosen[K.k].length<MAX){
+    var K=KINDS[step],qs=nz(this.value).replace(/^\s+|\s+$/g,''),h='',n=0,i,g,k,pass,hit;
+    if(qs.length>1&&chosen[K.k].length<MAX){
       for(pass=0;pass<2&&n<30;pass++){
         for(i=0;i<G.length&&n<30;i++){g=G[i];
           if(!(g[2]&K.bit)||chosen[K.k].indexOf(g)>=0)continue;
           k=g[1]||g[0].toLowerCase();
-          hit=pass===0?(k.indexOf(t)===0||k.indexOf(' '+t)>=0):(k.indexOf(t)>=0&&!(k.indexOf(t)===0||k.indexOf(' '+t)>=0));
+          hit=pass===0?(k.indexOf(qs)===0||k.indexOf(' '+qs)>=0):(k.indexOf(qs)>=0&&!(k.indexOf(qs)===0||k.indexOf(' '+qs)>=0));
           if(hit){n++;h+='<li><button data-i="'+i+'">+</button> '+info(g,K.bit)+'</li>'}}}
-      if(!n)h='<li>Brak wyników dla „'+esc(this.value)+'” wśród przystanków tego rodzaju</li>'}
+      if(!n)h='<li>'+t('nores',[esc(this.value)])+'</li>'}
     $('res').innerHTML=h;
-  }catch(e){say('Błąd wyszukiwania: '+e.message,true)}};
+  }catch(e){say('err_search',[e.message],true)}};
 $('res').onclick=function(e){var i=(e||window.event).target.getAttribute('data-i'),K=KINDS[step];
   if(i!==null&&chosen[K.k].length<MAX){chosen[K.k].push(G[i]);render();if(chosen[K.k].length<MAX)$('q').focus()}};
 $('sel').onclick=function(e){var i=(e||window.event).target.getAttribute('data-r');if(i!==null){chosen[KINDS[step].k].splice(i,1);render()}};
@@ -229,18 +320,22 @@ function assemble(texts,pl){
 $('get').onclick=function(){
   var pl=plan(),root=BASE+'d/'+IDX.v+'/',urls=[root+'svc.json'],i,btn=this;
   for(i=0;i<pl.length;i++)urls.push(root+'s/'+pl[i][0]+'.json');
-  btn.disabled=true;$('warn').textContent='Pobieram 0/'+urls.length+'…';
+  btn.disabled=true;$('warn').textContent=t('dl_progress',[0,urls.length]);
   getAll(urls,function(err,texts){
     btn.disabled=false;
-    if(err){$('warn').textContent=err;return}
+    if(err){$('warn').textContent=t('err_file',err);return}
     try{
       var o=assemble(texts,pl),json=JSON.stringify(o).replace(/</g,'\\u003c'),b=new Blob([json],{type:'application/json'}),a=document.createElement('a');
       a.href=URL.createObjectURL(b);a.download='rozklad.json';document.body.appendChild(a);a.click();document.body.removeChild(a);
-      $('warn').textContent='Gotowe: rozklad.json, '+Math.round(json.length/1024)+' KB.';
+      $('warn').textContent=t('dl_done',[Math.round(json.length/1024)]);
       window.__rz=o;
-    }catch(e){$('warn').textContent='Błąd: '+e.message}
-  },function(n,m){$('warn').textContent='Pobieram '+n+'/'+m+'…'})};
+    }catch(e){$('warn').textContent=t('dl_err',[e.message])}
+  },function(n,m){$('warn').textContent=t('dl_progress',[n,m])})};
 
+$('langs').onclick=function(e){var n=(e||window.event).target;
+  var l=n&&n.getAttribute?n.getAttribute('data-l'):null;
+  if(l){try{localStorage.setItem('rzlang',l)}catch(x){}setLang(l)}};
+setLang(detectLang());
 load();
 })();
 </script>
