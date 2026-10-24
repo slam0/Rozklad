@@ -1,6 +1,6 @@
 name: Zbuduj aplikację
 
-# Uruchom ręcznie: zakładka "Actions" -> "Zbuduj aplikację 0" -> "Run workflow".
+# Uruchom ręcznie: zakładka "Actions" -> "Zbuduj aplikację" -> "Run workflow".
 # Po kilku minutach na dole strony przebiegu pojawi się plik rozklad-deb do pobrania.
 on:
   workflow_dispatch:
@@ -12,7 +12,6 @@ on:
 
 permissions:
   contents: write     # publikacja wydania (Release) z plikiem .deb
-  actions: write      # odświeżenie strony po opublikowaniu
 
 jobs:
   build:
@@ -132,8 +131,3 @@ jobs:
           gh release delete najnowsza -R "$GITHUB_REPOSITORY" --cleanup-tag -y || true
           gh release create najnowsza $FILES -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
             --title "Rozkład $VER" --notes "Ostatnia zbudowana wersja aplikacji ($VER). Pobieraj ze strony projektu."
-
-      - name: Odśwież stronę (dodaj nowy plik do pobrania i repozytorium Cydii)
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run strona.yml -R "$GITHUB_REPOSITORY" --ref "${GITHUB_REF_NAME}"
