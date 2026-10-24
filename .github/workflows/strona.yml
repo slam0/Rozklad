@@ -63,13 +63,14 @@ jobs:
             || echo "Nie ma jeszcze opublikowanej wersji aplikacji - strona będzie bez pobierania."
           ls -l work/release || true
 
-      - name: Testy repozytorium Cydii
-        run: python3 -m unittest discover -s tools/tests -p 'test_build_repo.py'
+      - name: Testy skryptu pobierania
+        run: python3 -m unittest discover -s tools/tests -p 'test_build_pobierz.py'
 
-      - name: Złóż repozytorium Cydii i pliki do pobrania
-        run: |
-          OWNER="$(echo "${GITHUB_REPOSITORY%%/*}" | tr 'A-Z' 'a-z')"
-          python3 tools/build_repo.py work/release _site "https://${OWNER}.github.io/${GITHUB_REPOSITORY#*/}/"
+      - name: Złóż pliki do pobrania
+        env:
+          # Repozytorium Cydii jest osobnym repozytorium na GitHubie (zob. README). Zmień nazwę, jeśli nazwiesz je inaczej.
+          CYDIA_REPO_URL: https://slam0.github.io/cydia/
+        run: python3 tools/build_pobierz.py work/release _site "$CYDIA_REPO_URL"
 
       - name: Rozmiar strony
         run: |
