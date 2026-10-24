@@ -10,6 +10,9 @@ on:
   schedule:
     - cron: '23 3 * * 1'     # co poniedziałek rano pobiera świeże dane
   workflow_dispatch:
+  workflow_run:            # po zbudowaniu aplikacji sama odświeża stronę
+    workflows: ["Zbuduj aplikację"]
+    types: [completed]
 
 permissions:
   contents: read
@@ -23,6 +26,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
