@@ -97,8 +97,26 @@ Chcesz tylko sprawdzić, czy aplikacja działa? W folderze `przyklad/` jest
   - **Motyw**: Skóra (jak Znajomi), Czerwony (czerwone paski na szarym lnie z Centrum powiadomień), Klasyczny (jak Cydia), Grafit (ciemne paski na szarym lnie).
   - **Odjazdów na ekranie przystanku**: dotknięcie zmienia 10 → 20 → 30.
   - **Dane**: ile przystanków i do kiedy ważny rozkład, przycisk do strony z rozkładem,
-    usuwanie przeterminowanych albo wszystkich rozkładów, czyszczenie ulubionych.
+    usuwanie przeterminowanych albo wszystkich rozkładów, czyszczenie ulubionych i własnych nazw.
   - **O aplikacji**: wersja, autor, adres strony.
+
+## Własne nazwy i rozkład na wybrany dzień (wersja 1.2)
+
+Na ekranie przystanku, nad biletem, są dwa wiersze:
+
+- **Nazwa**: dotknij, wpisz własną nazwę (np. „Dom”, „Praca”, do 40 znaków) i dotknij **Zapisz**.
+  Własna nazwa pokazuje się na listach w zakładkach, w oknie wyboru przystanków, na bilecie
+  i w treści przypomnień. Pod wierszami zostaje podpowiedź z oryginalną nazwą. **Przywróć oryginał**
+  (w tym samym okienku) albo pusta nazwa cofa zmianę. Wszystkie własne nazwy usuniesz w Ustawieniach
+  (**Wyczyść własne nazwy**). Nazwa dotyczy jednego słupka i jest zapamiętana w telefonie,
+  więc wczytanie nowego rozkładu jej nie kasuje.
+- **Dzień**: dotknij, aby wybrać dzień. Na ekranie wyboru są przyciski **Dziś, Jutro, najbliższa
+  sobota, najbliższa niedziela** i kalendarz. Kalendarz pozwala wybrać tylko dni od dziś do końca
+  ważności rozkładu w telefonie. Po wyborze ekran przystanku pokazuje **wszystkie odjazdy z tego dnia**
+  od 00:00 (kursy nocne z poprzedniego dnia, np. 24:30, są na początku listy). Dotknięcie odjazdu
+  ustawia przypomnienie na ten dzień. **Dziś** wraca do zwykłego widoku z biletem i odliczaniem.
+
+Do listy całego dnia służy nowa funkcja `rz_list` w `rz_core.c` (test w `tests/core_test.c`).
 
 ## Czego jeszcze nie ma (wersja 0.1)
 
@@ -244,7 +262,8 @@ scp rozklad.json iphone:/var/mobile/Documents/Rozklady/
 | `rz_core.c`, `rz_core.h` | Logika: które kursy jadą danego dnia, najbliższe odjazdy, teksty „za 5 minut”. Przetestowana (`tests/`). |
 | `RZSchedule.m` | Wczytywanie plików `.json` z folderu. |
 | `RZTabController.m` | Jedna zakładka: lista wybranych przystanków z najbliższym odjazdem i ulubionymi, pasek z odliczaniem. |
-| `RZStopController.m` | Ekran jednego przystanku: bilet z najbliższym odjazdem i kolejne odjazdy. |
+| `RZStopController.m` | Ekran jednego przystanku: nazwa, dzień, bilet z najbliższym odjazdem i kolejne odjazdy (albo cały wybrany dzień). |
+| `RZDayController.m` | Ekran wyboru dnia: przyciski Dziś / Jutro / sobota / niedziela i kalendarz. |
 | `RZViews.m` | Wygląd i motywy: znaczki linii, bilet, ruchomy pasek, ikony zakładek, paski, tła. |
 | `RZPickerController.m` | Okno wyboru przystanków z ptaszkami. |
 | `RZSettingsController.m` | Zakładka Ustawienia: motywy, dane, informacje o aplikacji. |
@@ -265,21 +284,26 @@ u góry informuje, kiedy wygaśnie.
 
 `Resources/Default*.png` to ekran startowy (logo z czerwonymi promieniami). Po uruchomieniu aplikacja dodatkowo przytrzymuje go ok. 1,4 s i płynnie wygasza (`AppDelegate.m`). Aby zmienić czas, edytuj `1.4` w `didFinishLaunchingWithOptions`.
 
-## Strona główna, pobieranie i repozytorium Cydii
+## Strona główna i pobieranie
 
 Adresy (po włączeniu GitHub Pages):
 
 * `https://slam0.github.io/Rozklad/` – strona główna z pobieraniem aplikacji (`site/index.html`),
 * `https://slam0.github.io/Rozklad/kreator/` – kreator przystanków (`site/kreator/index.html`),
-* `https://slam0.github.io/Rozklad/repo/` – repozytorium dla Cydii (Manage → Sources → Edit → Add),
-* `https://slam0.github.io/Rozklad/pobierz/Rozklad.deb` – stały adres pliku .deb.
+* `https://slam0.github.io/Rozklad/pobierz/Rozklad.ipa` – stały adres pliku .ipa.
 
-Jak to działa: workflow **Zbuduj aplikację** po zbudowaniu publikuje plik `.deb` (i `.ipa`) jako wydanie
-(Release) o stałej nazwie `najnowsza` i uruchamia workflow **Strona z rozkładem**. Ten pobiera wydanie,
-skrypt `tools/build_repo.py` składa z niego repozytorium APT (`Packages`, `Packages.gz`, `Packages.bz2`, `Release`)
-oraz plik `pobierz.json`, który czyta strona główna. Dane rozkładowe (`index.json`, `d/…`) zostają w głównym
-folderze strony, więc aplikacja i linki `rozklad://import?u=…` działają jak wcześniej.
+Workflow **Zbuduj aplikację** po zbudowaniu publikuje `.deb` i `.ipa` jako wydanie (Release) o stałej nazwie
+`najnowsza`. Workflow **Strona z rozkładem** (uruchamia się sam po budowaniu) pobiera to wydanie, a
+`tools/build_pobierz.py` składa z niego `pobierz.json` i pliki w `pobierz/`. Dane rozkładowe (`index.json`, `d/…`)
+są w głównym folderze strony, więc aplikacja i linki `rozklad://import?u=…` działają jak wcześniej.
 
-Kolejność pierwszego uruchomienia: 1) Actions → „Zbuduj aplikację” → Run workflow, 2) poczekaj, aż sam odświeży stronę.
-W ustawieniach repozytorium (Settings → Actions → General → Workflow permissions) musi być zezwolenie na zapis
-(„Read and write permissions”) – inaczej publikacja wydania się nie uda.
+W ustawieniach repozytorium (Settings → Actions → General → Workflow permissions) musi być zaznaczone
+**Read and write permissions** – inaczej publikacja wydania się nie uda.
+
+### Repozytorium Cydii
+
+Paczka `.deb` trafia do Cydii przez **osobne repozytorium** `slam0/cydia`
+(adres `https://slam0.github.io/cydia/`), wspólne dla wszystkich projektów. Ono samo pobiera wydania `najnowsza`
+z projektów wypisanych w pliku `projekty.txt` (nowy projekt = jedna linijka). Dla tego projektu nic więcej
+nie trzeba robić: wystarczy, że każde zbudowanie publikuje wydanie `najnowsza` z plikiem `.deb`.
+Gdy nazwiesz repozytorium inaczej, zmień `CYDIA_REPO_URL` w `.github/workflows/strona.yml`.

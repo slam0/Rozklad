@@ -128,7 +128,7 @@
     }
     RZStop *s = [_stops objectAtIndex:indexPath.row];
     cell.textLabel.numberOfLines = 1;
-    cell.textLabel.text = s.title;
+    cell.textLabel.text = s.displayTitle;
     cell.detailTextLabel.text = [_details objectAtIndex:indexPath.row];
     cell.accessoryType = [_chosen containsObject:s.key] ? UITableViewCellAccessoryCheckmark : UITableViewCellAccessoryNone;
     cell.selectionStyle = UITableViewCellSelectionStyleBlue;

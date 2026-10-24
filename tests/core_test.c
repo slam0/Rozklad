@@ -130,6 +130,61 @@ int main(void)
     CHECK(n == 6, "doba: 3 poranne + 22:10 + dwa kursy 25:10 dnia dzisiejszego");
     CHECK(n == 6 && out[3].time == 1330 && out[4].time == 1510 && out[5].time == 1510, "doba: kolejnosc");
 
+
+    /* --- cały dzień (rz_list) --- */
+    /* ten sam piątek 23.10.2026: okno 0..1440 */
+    n = rz_list(deps, 8, svc, 2, ymd, wd, 0, 1440, 'b', NULL, 0);
+    CHECK(n == 6, "rz_list zlicza: dwa kursy nocne z wczoraj (01:10) + 4 odjazdy dziś");
+    {
+        RZNext all[16];
+        n = rz_list(deps, 8, svc, 2, ymd, wd, 0, 1440, 'b', all, 16);
+        /* oczekiwane: dwa kursy nocne 01:10 (linie 3 i 6, wczoraj 25:10), 10:05, 10:17, 10:40, 22:10;
+           kursy 25:10 z dziś wchodzą dopiero do jutrzejszego okna (>= 1440) */
+        CHECK(n == 6, "rz_list: 6 odjazdów w dobie 0..1440");
+        CHECK(n == 6 && all[0].time == 70 && all[0].line == 3 && all[1].time == 70 && all[1].line == 6, "rz_list: najpierw kursy nocne 01:10, po linii");
+        CHECK(n == 6 && all[2].time == 605 && all[3].time == 617 && all[4].time == 640, "rz_list: poranne w kolejności");
+        CHECK(n == 6 && all[5].time == 1330, "rz_list: ostatni 22:10");
+        /* okno od 10:10 */
+        n = rz_list(deps, 8, svc, 2, ymd, wd, 610, 1440, 'b', all, 16);
+        CHECK(n == 3 && all[0].time == 617 && all[2].time == 1330, "rz_list: okno od 10:10");
+        /* obcięcie do cap */
+        n = rz_list(deps, 8, svc, 2, ymd, wd, 0, 1440, 'b', all, 2);
+        CHECK(n == 2, "rz_list: cap 2");
+        /* inny rodzaj i puste okno */
+        n = rz_list(deps, 8, svc, 2, ymd, wd, 0, 1440, 't', all, 16);
+        CHECK(n == 1 && all[0].line == 9, "rz_list: tramwaj");
+        n = rz_list(deps, 8, svc, 2, ymd, wd, 700, 700, 'b', all, 16);
+        CHECK(n == 0, "rz_list: puste okno");
+        /* sobota: kalendarz 0 nie jedzie, zostają tylko kursy nocne z piątku (25:10 = sobota 01:10) */
+        {
+            int32_t ymd3[3] = { 20261023, 20261024, 20261025 };
+            int wd3[3] = { 4, 5, 6 };
+            n = rz_list(deps, 8, svc, 2, ymd3, wd3, 0, 1440, 'b', all, 16);
+            CHECK(n == 2 && all[0].time == 70 && all[1].time == 70, "rz_list: sobota tylko kursy nocne z piątku");
+        }
+    }
+
+    /* duża doba: 1000 odjazdów w losowej kolejności musi wyjść posortowane */
+    {
+        static RZDep many[1000];
+        static RZNext big[1100];
+        unsigned seed = 12345u;
+        int i, sorted = 1;
+        for (i = 0; i < 1000; i++) {
+            seed = seed * 1103515245u + 12345u;
+            many[i].minute = (int32_t)((seed >> 8) % 1400);
+            many[i].svc = 0;
+            many[i].line = (uint16_t)(i % 7);
+            many[i].head = 0;
+            many[i].kind = 'b';
+        }
+        n = rz_list(many, 1000, svc, 2, ymd, wd, 0, 1440, 'b', NULL, 0);
+        CHECK(n == 1000, "rz_list: zliczono 1000");
+        n = rz_list(many, 1000, svc, 2, ymd, wd, 0, 1440, 'b', big, 1100);
+        for (i = 1; i < n; i++) if (big[i - 1].time > big[i].time) sorted = 0;
+        CHECK(n == 1000 && sorted, "rz_list: 1000 odjazdów posortowane");
+    }
+
     if (fails) { printf("\n%d błędów\n", fails); return 1; }
     printf("OK: wszystkie testy logiki przeszły\n");
     return 0;

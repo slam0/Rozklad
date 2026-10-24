@@ -17,7 +17,7 @@ include $(THEOS)/makefiles/common.mk
 
 APPLICATION_NAME = Rozklad
 
-Rozklad_FILES = main.m AppDelegate.m RZSchedule.m RZViews.m RZTabController.m RZPickerController.m RZWifiController.m RZImportController.m RZSettingsController.m RZStopController.m RZLang.m rz_core.c rz_http.c rz_import.c rz_libc.c
+Rozklad_FILES = main.m AppDelegate.m RZSchedule.m RZViews.m RZTabController.m RZPickerController.m RZWifiController.m RZImportController.m RZSettingsController.m RZStopController.m RZDayController.m RZLang.m rz_core.c rz_http.c rz_import.c rz_libc.c
 Rozklad_FRAMEWORKS = UIKit Foundation CoreGraphics QuartzCore
 Rozklad_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-unused-command-line-argument
 

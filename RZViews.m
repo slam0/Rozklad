@@ -642,6 +642,11 @@ UIView *RZSectionFooterView(NSString *text)
 
 - (void)setDeparture:(RZDeparture *)dep nowMinutes:(NSInteger)now
 {
+    [self setDeparture:dep nowMinutes:now showCountdown:YES];
+}
+
+- (void)setDeparture:(RZDeparture *)dep nowMinutes:(NSInteger)now showCountdown:(BOOL)show
+{
     BOOL dark = (RZTheme()->darkShadow != 0);
     UIColor *shadow = dark ? [UIColor clearColor] : [UIColor whiteColor];
     [_badge setLine:dep.line kind:dep.kind];
@@ -652,6 +657,10 @@ UIView *RZSectionFooterView(NSString *text)
     _time.textColor = RZCellTextColor();
     _time.shadowColor = shadow;
     NSInteger left = dep.time - now;
+    if (!show) {
+        _eta.text = @"";
+        return;
+    }
     _eta.text = [RZSchedule etaString:left];
     /* odjazd za kilka minut: napis na czerwono i pogrubiony, żeby rzucał się w oczy */
     if (left <= 5) {

@@ -411,7 +411,7 @@ static NSString *const kMsgID = @"msg";
         [cell.star addTarget:self action:@selector(starTapped:) forControlEvents:UIControlEventTouchUpInside];
     }
     BOOL fav = [[RZSchedule shared] isFavoriteStop:s kind:_kind];
-    [cell setTitle:s.title departure:[_next objectForKey:s.key] nowMinutes:_nowMinutes favorite:fav];
+    [cell setTitle:s.displayTitle departure:[_next objectForKey:s.key] nowMinutes:_nowMinutes favorite:fav];
     return cell;
 }
 
@@ -420,7 +420,7 @@ static NSString *const kMsgID = @"msg";
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
     RZStop *s = [self stopAtIndexPath:indexPath];
     if (!s) return;
-    RZStopController *vc = [[RZStopController alloc] initWithStopKey:s.key kind:_kind title:s.title];
+    RZStopController *vc = [[RZStopController alloc] initWithStopKey:s.key kind:_kind title:s.displayTitle];
     [self.navigationController pushViewController:vc animated:YES];
 }
 

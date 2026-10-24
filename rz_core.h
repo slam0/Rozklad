@@ -52,6 +52,19 @@ int rz_next(const RZDep *deps, size_t ndeps,
             int now, int horizon, uint8_t kind,
             RZNext *out, int limit);
 
+/*
+ * Wszystkie odjazdy rodzaju `kind` w oknie od `from` (włącznie) do `to` (wyłącznie), w minutach
+ * od północy dnia ymd[1] (cały dzień to from=0, to=1440). ymd[0..2] i weekday[0..2] jak w rz_next.
+ * Wynik posortowany po czasie (przy równym czasie po linii). Gdy out == NULL lub cap <= 0,
+ * tylko zlicza i zwraca liczbę pasujących odjazdów. Inaczej zapisuje do `cap` wyników
+ * i zwraca ich liczbę - żeby dostać wszystkie, daj cap nie mniejsze niż policzona liczba.
+ */
+int rz_list(const RZDep *deps, size_t ndeps,
+            const RZService *svcs, size_t nsvc,
+            const int32_t ymd[3], const int weekday[3],
+            int from, int to, uint8_t kind,
+            RZNext *out, int cap);
+
 /* Teksty po polsku (UTF-8). */
 /* Język tekstów: 0 polski (domyślnie), 1 angielski, 2 rosyjski */
 extern int rz_lang;

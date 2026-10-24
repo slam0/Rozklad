@@ -46,6 +46,8 @@ UIView *RZStopHeaderView(NSString *text, BOOL favorite, id target, SEL action, N
 /* Zwykły wiersz odjazdu: [linia] kierunek ........ 10:56 / za 17 minut */
 @interface RZDepartureCell : UITableViewCell
 - (void)setDeparture:(RZDeparture *)dep nowMinutes:(NSInteger)now;
+/* showCountdown = NO: bez napisu "za 5 minut" (rozkład na inny dzień niż dzisiaj) */
+- (void)setDeparture:(RZDeparture *)dep nowMinutes:(NSInteger)now showCountdown:(BOOL)show;
 @end
 
 /* Wiersz listy przystanków: znaczek najbliższego odjazdu, nazwa, "→ kierunek · za 4 min" i gwiazdka */

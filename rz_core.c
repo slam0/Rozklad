@@ -70,6 +70,71 @@ int rz_next(const RZDep *deps, size_t ndeps,
     return count;
 }
 
+static int rz_before(const RZNext *a, const RZNext *b)
+{
+    if (a->time != b->time) return a->time < b->time;
+    if (a->line != b->line) return a->line < b->line;
+    return a->head < b->head;
+}
+
+/* Sortowanie Shella: bez qsort, bo nie chcemy zależeć od zastępczych plików SDK. */
+static void rz_sort(RZNext *a, int n)
+{
+    int gap, i, j;
+    for (gap = n / 2; gap > 0; gap /= 2) {
+        for (i = gap; i < n; i++) {
+            RZNext t = a[i];
+            for (j = i; j >= gap && rz_before(&t, &a[j - gap]); j -= gap) a[j] = a[j - gap];
+            a[j] = t;
+        }
+    }
+}
+
+int rz_list(const RZDep *deps, size_t ndeps,
+            const RZService *svcs, size_t nsvc,
+            const int32_t ymd[3], const int weekday[3],
+            int from, int to, uint8_t kind,
+            RZNext *out, int cap)
+{
+    unsigned char *ok;
+    int count = 0;
+    int counting = (out == NULL || cap <= 0);
+    int di;
+    size_t k, i;
+
+    if (ndeps == 0 || nsvc == 0 || to <= from) return 0;
+
+    ok = (unsigned char *)calloc(3 * nsvc, 1);
+    if (!ok) return 0;
+    for (di = 0; di < 3; di++) {
+        for (k = 0; k < nsvc; k++) {
+            ok[di * nsvc + k] = (unsigned char)rz_service_runs(&svcs[k], ymd[di], weekday[di]);
+        }
+    }
+
+    for (di = 0; di < 3; di++) {
+        int off = (di - 1) * 1440;
+        for (i = 0; i < ndeps; i++) {
+            const RZDep *d = &deps[i];
+            int t = off + d->minute;
+            if (d->kind != kind) continue;
+            if (t < from || t >= to) continue;
+            if (d->svc >= nsvc || !ok[di * nsvc + d->svc]) continue;
+            if (!counting) {
+                if (count >= cap) continue;
+                out[count].time = t;
+                out[count].line = d->line;
+                out[count].head = d->head;
+            }
+            count++;
+        }
+    }
+
+    free(ok);
+    if (!counting) rz_sort(out, count);
+    return count;
+}
+
 int rz_lang = 0;
 
 void rz_set_lang(int lang)

@@ -103,7 +103,7 @@ input.repo{margin-top:8px;font-size:14px;text-align:center}
 
 <div class="gl" data-t="gl_feat"></div>
 <ul class="grp feat">
-  <li data-t="f1"></li><li data-t="f2"></li><li data-t="f3"></li><li data-t="f4"></li><li data-t="f5"></li><li data-t="f6"></li>
+  <li data-t="f1"></li><li data-t="f2"></li><li data-t="f3"></li><li data-t="f4"></li><li data-t="f5"></li><li data-t="f6"></li><li data-t="f7"></li>
 </ul>
 
 <div class="gl" data-t="gl_req"></div>
@@ -121,11 +121,11 @@ pl:{title:'Rozkład – rozkład jazdy offline dla iOS 6',sub:'rozkład jazdy of
  gl_dl:'Pobierz',soon:'Pierwsza wersja aplikacji zostanie tu opublikowana wkrótce.',
  ver:'Wersja {0} · {1} · {2} KB',b_ipa:'Pobierz aplikację (.ipa)',repo_page:'Strona repozytorium →',n_ipa:'Plik .ipa otwórz w Filza lub iFile i wybierz Install (wymaga AppSync Unified) albo zainstaluj go z komputera przez iTunes.',b_cydia:'Dodaj do Cydii',
  repo_t:'Albo dodaj nasze repozytorium w Cydii:',repo_how:'Cydia → Manage → Sources → Edit → Add, wklej adres, potem wyszukaj „Rozkład”. Dzięki temu Cydia sama poinformuje o nowych wersjach.',
- gl_start:'Jak zacząć?',s1:'Zainstaluj aplikację na telefonie. (Zalecane zainstalowanie pliku .ipa)',s2:'Wejdź w Kreator, znajdź przystanki które chcesz dodać (autobus, tramwaj, pociąg, metro).',s3:'Dotknij „Otwórz w aplikacji Rozkład” – aplikacja sama pobierze rozkład i dalej działa bez internetu.',
- b_wiz:'Kreator Rozkładu Jazdy →',
- gl_feat:'Co potrafi',f1:'Rozkład działa offline – internet potrzebny tylko do pobrania danych.',f2:'Odliczanie do odjazdu co sekundę.',f3:'Ulubione przystanki i przypomnienia o odjeździe.',f4:'Cztery motywy (skóra, czerwony, klasyczny, grafit).',f5:'Dostępne Języki: polski, angielski, rosyjski.',f6:'Dane z ZTM Warszawa odświeżane są co tydzień.',
- gl_req:'Wymagania',req1:'iPhone lub iPod touch z iOS 6.0 lub nowszym po jailbreaku (potrzebny AppSync). Urządzenia 32-bitowe: iPhone 3GS, 4, 4S, 5 oraz iPod touch 4 i 5.',
- req2:'Testowane na iOS 6.0 oraz 6.1.3. Na nowszych systemach NIE TESTOWANE!.',
+ gl_start:'Jak zacząć',s1:'Zainstaluj aplikację na telefonie.',s2:'Wejdź w Kreator, znajdź swoje przystanki (autobus, tramwaj, pociąg, metro).',s3:'Dotknij „Otwórz w aplikacji Rozkład” – aplikacja sama pobierze rozkład i dalej działa bez internetu.',
+ b_wiz:'Kreator przystanków →',
+ gl_feat:'Co potrafi',f1:'Rozkład działa offline – internet potrzebny tylko do pobrania danych.',f2:'Odliczanie do odjazdu co sekundę.',f3:'Ulubione przystanki i przypomnienia o odjeździe.',f4:'Cztery motywy w stylu iOS 6 (skóra, czerwony, klasyczny, grafit).',f5:'Język: polski, angielski, rosyjski.',f6:'Dane z ZTM Warszawa odświeżane co tydzień.',f7:'Rozkład na wybrany dzień i własne nazwy przystanków (np. „Dom”).',
+ gl_req:'Wymagania',req1:'iPhone lub iPod touch z iOS 6.0 lub nowszym po jailbreaku (potrzebna Cydia). Urządzenia 32-bitowe: iPhone 3GS, 4, 4S, 5 oraz iPod touch 4 i 5.',
+ req2:'Testowane na iOS 6.1.3. Na nowszych systemach (np. iOS 8) są znane problemy.',
  foot:'Dane rozkładowe: ZTM Warszawa (GTFS), udostępnia mkuran.pl. Aplikacja jest nieoficjalna i niezwiązana z ZTM Warszawa. Rozkład może być nieaktualny – sprawdzaj datę ważności.',src:'Kod źródłowy'},
 en:{title:'Rozkład – offline timetable for iOS 6',sub:'offline timetable for iOS 6',
  lead:'The Warsaw timetable in your pocket, without internet: buses, trams, trains and metro. A free app for iPhone and iPod touch running iOS 6.',
@@ -134,7 +134,7 @@ en:{title:'Rozkład – offline timetable for iOS 6',sub:'offline timetable for 
  repo_t:'Or add our repository in Cydia:',repo_how:'Cydia → Manage → Sources → Edit → Add, paste the address, then search for “Rozkład”. This way Cydia will tell you about new versions.',
  gl_start:'Getting started',s1:'Install the app on your phone.',s2:'Open the Creator and find your stops (bus, tram, train, metro).',s3:'Tap “Open in the Rozkład app” – the app downloads the timetable itself and keeps working without internet.',
  b_wiz:'Stop creator →',
- gl_feat:'What it does',f1:'Works offline – internet is only needed to download the data.',f2:'Countdown to departure, updated every second.',f3:'Favourite stops and departure reminders.',f4:'Four iOS 6 style themes (leather, red, classic, graphite).',f5:'Languages: Polish, English, Russian.',f6:'ZTM Warszawa data refreshed every week.',
+ gl_feat:'What it does',f1:'Works offline – internet is only needed to download the data.',f2:'Countdown to departure, updated every second.',f3:'Favourite stops and departure reminders.',f4:'Four iOS 6 style themes (leather, red, classic, graphite).',f5:'Languages: Polish, English, Russian.',f6:'ZTM Warszawa data refreshed every week.',f7:'Timetable for any chosen day and your own stop names (e.g. “Home”).',
  gl_req:'Requirements',req1:'iPhone or iPod touch with iOS 6.0 or later, jailbroken (Cydia needed). 32-bit devices: iPhone 3GS, 4, 4S, 5 and iPod touch 4 and 5.',
  req2:'Tested on iOS 6.1.3. There are known problems on newer systems (e.g. iOS 8).',
  foot:'Timetable data: ZTM Warszawa (GTFS), provided by mkuran.pl. The app is unofficial and not affiliated with ZTM Warszawa. The timetable may be out of date – check the expiry date.',src:'Source code'},
@@ -145,7 +145,7 @@ ru:{title:'Rozkład – расписание офлайн для iOS 6',sub:'р�
  repo_t:'Или добавьте наш репозиторий в Cydia:',repo_how:'Cydia → Manage → Sources → Edit → Add, вставьте адрес, затем найдите «Rozkład». Так Cydia сама сообщит о новых версиях.',
  gl_start:'Как начать',s1:'Установите приложение на телефон.',s2:'Откройте Мастер и найдите свои остановки (автобус, трамвай, поезд, метро).',s3:'Нажмите «Открыть в приложении Rozkład» – приложение само загрузит расписание и дальше работает без интернета.',
  b_wiz:'Мастер остановок →',
- gl_feat:'Возможности',f1:'Работает офлайн – интернет нужен только для загрузки данных.',f2:'Отсчёт до отправления каждую секунду.',f3:'Избранные остановки и напоминания об отправлении.',f4:'Четыре темы в стиле iOS 6 (кожа, красная, классика, графит).',f5:'Языки: польский, английский, русский.',f6:'Данные ZTM Warszawa обновляются каждую неделю.',
+ gl_feat:'Возможности',f1:'Работает офлайн – интернет нужен только для загрузки данных.',f2:'Отсчёт до отправления каждую секунду.',f3:'Избранные остановки и напоминания об отправлении.',f4:'Четыре темы в стиле iOS 6 (кожа, красная, классика, графит).',f5:'Языки: польский, английский, русский.',f6:'Данные ZTM Warszawa обновляются каждую неделю.',f7:'Расписание на выбранный день и свои названия остановок (например «Дом»).',
  gl_req:'Требования',req1:'iPhone или iPod touch с iOS 6.0 или новее после джейлбрейка (нужна Cydia). 32-битные устройства: iPhone 3GS, 4, 4S, 5 и iPod touch 4 и 5.',
  req2:'Проверено на iOS 6.1.3. На более новых системах (например, iOS 8) есть известные проблемы.',
  foot:'Данные расписания: ZTM Warszawa (GTFS), предоставляет mkuran.pl. Приложение неофициальное и не связано с ZTM Warszawa. Расписание может быть неактуальным – проверяйте дату действия.',src:'Исходный код'}
@@ -163,9 +163,10 @@ function detectLang(){
   return n==='ru'?'ru':(n==='pl'?'pl':'en')}
 function paint(){
   var has=!!INFO;
-  $('have').hidden=!has;$('soon').hidden=has;$('ver').hidden=!has;
+  $('have').hidden=!has;$('soon').hidden=has;
   $('ipabox').hidden=!(has&&INFO.ipa);
-  if(has){
+  $('ver').hidden=!(has&&INFO.size>0);
+  if(has&&INFO.size>0){
     $('ver').textContent=t('ver',[INFO.version,INFO.date,Math.round((INFO.ipa?INFO.ipa_size:INFO.size)/1024)]);
   }
   $('repo').value=CYDIA;

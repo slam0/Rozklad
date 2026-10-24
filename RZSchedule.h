@@ -33,11 +33,13 @@ static inline unsigned RZKindBit(char kind)
 @property (nonatomic, copy) NSString *name;
 @property (nonatomic, copy) NSString *code;      /* numer słupka, np. "01" (może być pusty) */
 @property (nonatomic, copy) NSString *key;       /* nazwa|numer: rozpoznaje przystanek między uruchomieniami */
-@property (nonatomic, copy) NSString *title;     /* do wyświetlania, np. "Centrum 01" */
+@property (nonatomic, copy) NSString *title;     /* oryginalna nazwa z rozkładu, np. "Centrum 01" */
 @property (nonatomic, strong) RZDataset *dataset;
 @property (nonatomic, strong) NSData *deps;      /* tablica RZDep */
 @property (nonatomic) NSUInteger count;
 @property (nonatomic) unsigned kindMask;
+/* Nazwa do wyświetlania: własna nazwa nadana przez użytkownika albo, gdy jej nie ma, title */
+- (NSString *)displayTitle;
 @end
 
 @interface RZDeparture : NSObject
@@ -81,6 +83,19 @@ static inline unsigned RZKindBit(char kind)
 - (void)setFavorite:(BOOL)fav forStop:(RZStop *)stop kind:(char)kind;
 - (NSUInteger)favoriteCount;
 - (void)clearFavorites;
+
+/* Własne nazwy przystanków (np. "Dom", "Praca"). Zapamiętywane w telefonie, osobno dla każdego słupka. */
+- (NSString *)customNameForStop:(RZStop *)stop;                 /* nil, gdy brak */
+- (void)setCustomName:(NSString *)name forStop:(RZStop *)stop;  /* nil lub puste usuwa własną nazwę */
+- (NSUInteger)customNameCount;
+- (void)clearCustomNames;
+
+/* Wszystkie odjazdy danego dnia (od 00:00 do 24:00), posortowane po czasie. `date` to dowolna chwila tego dnia. */
+- (NSArray *)departuresForStop:(RZStop *)stop kind:(char)kind onDate:(NSDate *)date;
+/* Czy wczytany rozkład tego przystanku obejmuje podany dzień (według daty końca ważności pliku) */
+- (BOOL)coversDate:(NSDate *)date forStop:(RZStop *)stop;
+/* Ostatni dzień ważności pliku z tym przystankiem (początek tego dnia) lub nil, gdy nieznany */
+- (NSDate *)lastDayForStop:(RZStop *)stop;
 
 /* Ile odjazdów pokazywać na ekranie przystanku (10, 20 lub 30) */
 + (NSInteger)departureLimit;

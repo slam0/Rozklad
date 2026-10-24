@@ -51,6 +51,30 @@ static NSCalendar *RZCalendar(void)
     return cal;
 }
 
+/* Data (yyyymmdd) i dzień tygodnia (0 = poniedziałek) dla wczoraj, dziś i jutro względem `date` */
+static void RZThreeDays(NSDate *date, int32_t ymd[3], int wd[3])
+{
+    NSCalendar *cal = RZCalendar();
+    for (int i = 0; i < 3; i++) {
+        NSDateComponents *off = [[NSDateComponents alloc] init];
+        [off setDay:i - 1];
+        NSDate *day = [cal dateByAddingComponents:off toDate:date options:0];
+        NSDateComponents *c = [cal components:(NSYearCalendarUnit | NSMonthCalendarUnit | NSDayCalendarUnit | NSWeekdayCalendarUnit)
+                                     fromDate:day];
+        ymd[i] = (int32_t)([c year] * 10000 + [c month] * 100 + [c day]);
+        wd[i] = (int)(([c weekday] + 5) % 7);   /* niedziela=1 -> 6, poniedziałek=2 -> 0 */
+    }
+}
+
+static NSString *const kNamesKey = @"nazwy_przystankow";
+static const NSUInteger kMaxNameLength = 40;
+
+static NSDictionary *RZNames(void)
+{
+    NSDictionary *d = [[NSUserDefaults standardUserDefaults] dictionaryForKey:kNamesKey];
+    return d ? d : [NSDictionary dictionary];
+}
+
 #pragma mark - Klasy danych
 
 @implementation RZDataset
@@ -69,6 +93,11 @@ static NSCalendar *RZCalendar(void)
 @end
 
 @implementation RZStop
+- (NSString *)displayTitle
+{
+    NSString *custom = [[RZSchedule shared] customNameForStop:self];
+    return [custom length] ? custom : self.title;
+}
 @end
 
 @implementation RZDeparture
@@ -329,9 +358,12 @@ static NSString *RZSelectionKey(char kind)
 - (NSArray *)sortedStopsOfKind:(char)kind
 {
     NSLocale *loc = [NSLocale currentLocale];
+    NSDictionary *names = RZNames();       /* raz na całe sortowanie, a nie przy każdym porównaniu */
     return [[self stopsOfKind:kind] sortedArrayUsingComparator:^NSComparisonResult(id a, id b) {
-        NSString *x = ((RZStop *)a).title;
-        NSString *y = ((RZStop *)b).title;
+        NSString *x = [names objectForKey:((RZStop *)a).key];
+        NSString *y = [names objectForKey:((RZStop *)b).key];
+        if (![x isKindOfClass:[NSString class]] || ![x length]) x = ((RZStop *)a).title;
+        if (![y isKindOfClass:[NSString class]] || ![y length]) y = ((RZStop *)b).title;
         return [x compare:y options:(NSCaseInsensitiveSearch | NSNumericSearch)
                     range:NSMakeRange(0, [x length]) locale:loc];
     }];
@@ -450,18 +482,9 @@ static NSString *RZSelectionKey(char kind)
 {
     if (!stop.deps || !stop.dataset) return [NSArray array];
 
-    NSCalendar *cal = RZCalendar();
     int32_t ymd[3];
     int wd[3];
-    for (int i = 0; i < 3; i++) {
-        NSDateComponents *off = [[NSDateComponents alloc] init];
-        [off setDay:i - 1];
-        NSDate *day = [cal dateByAddingComponents:off toDate:now options:0];
-        NSDateComponents *c = [cal components:(NSYearCalendarUnit | NSMonthCalendarUnit | NSDayCalendarUnit | NSWeekdayCalendarUnit)
-                                     fromDate:day];
-        ymd[i] = (int32_t)([c year] * 10000 + [c month] * 100 + [c day]);
-        wd[i] = (int)(([c weekday] + 5) % 7);   /* niedziela=1 -> 6, poniedziałek=2 -> 0 */
-    }
+    RZThreeDays(now, ymd, wd);
     int nowMin = (int)[RZSchedule minutesOfDay:now];
     int horizon = (kind == 'p') ? 1440 : 720;
 
@@ -481,6 +504,54 @@ static NSString *RZSelectionKey(char kind)
         [result addObject:d];
     }
     return result;
+}
+
+/* Cały dzień: od 00:00 do 24:00 (kursy nocne z poprzedniego dnia, np. 25:10, trafiają na początek dnia) */
+- (NSArray *)departuresForStop:(RZStop *)stop kind:(char)kind onDate:(NSDate *)date
+{
+    if (!stop.deps || !stop.dataset) return [NSArray array];
+    int32_t ymd[3];
+    int wd[3];
+    RZThreeDays(date, ymd, wd);
+    RZDataset *ds = stop.dataset;
+    const RZDep *deps = (const RZDep *)[stop.deps bytes];
+    int total = rz_list(deps, stop.count, ds->svcs, ds->svcCount, ymd, wd, 0, 1440, (uint8_t)kind, NULL, 0);
+    if (total <= 0) return [NSArray array];
+    if (total > 4000) total = 4000;
+    RZNext *found = (RZNext *)malloc(sizeof(RZNext) * (size_t)total);
+    if (!found) return [NSArray array];
+    int n = rz_list(deps, stop.count, ds->svcs, ds->svcCount, ymd, wd, 0, 1440, (uint8_t)kind, found, total);
+    NSMutableArray *result = [NSMutableArray arrayWithCapacity:(NSUInteger)n];
+    for (int i = 0; i < n; i++) {
+        RZDeparture *d = [[RZDeparture alloc] init];
+        d.time = found[i].time;
+        d.kind = kind;
+        d.line = found[i].line < [ds.lines count] ? [ds.lines objectAtIndex:found[i].line] : @"?";
+        d.head = found[i].head < [ds.heads count] ? [ds.heads objectAtIndex:found[i].head] : @"";
+        [result addObject:d];
+    }
+    free(found);
+    return result;
+}
+
+- (NSDate *)lastDayForStop:(RZStop *)stop
+{
+    int32_t e = rz_parse_date([stop.dataset.end UTF8String]);
+    if (e <= 0) return nil;
+    NSDateComponents *c = [[NSDateComponents alloc] init];
+    [c setYear:e / 10000];
+    [c setMonth:(e / 100) % 100];
+    [c setDay:e % 100];
+    return [RZCalendar() dateFromComponents:c];
+}
+
+- (BOOL)coversDate:(NSDate *)date forStop:(RZStop *)stop
+{
+    NSDate *last = [self lastDayForStop:stop];
+    if (!last) return YES;
+    NSDateComponents *c = [RZCalendar() components:(NSYearCalendarUnit | NSMonthCalendarUnit | NSDayCalendarUnit) fromDate:date];
+    int32_t ymd = (int32_t)([c year] * 10000 + [c month] * 100 + [c day]);
+    return ymd <= rz_parse_date([stop.dataset.end UTF8String]);
 }
 
 /* Koniec ostatniego dnia ważności jednego pliku (lub nil, gdy plik nie podaje daty) */
@@ -549,6 +620,47 @@ static NSString *RZSelectionKey(char kind)
     }
     if (n) [self reload];
     return n;
+}
+
+#pragma mark - Własne nazwy przystanków
+
+- (NSString *)customNameForStop:(RZStop *)stop
+{
+    if (!stop || !stop.key) return nil;
+    id v = [RZNames() objectForKey:stop.key];
+    return ([v isKindOfClass:[NSString class]] && [v length]) ? v : nil;
+}
+
+- (void)setCustomName:(NSString *)name forStop:(RZStop *)stop
+{
+    if (!stop || !stop.key) return;
+    NSString *clean = [name stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if ([clean length] > kMaxNameLength) {
+        /* nie przecinamy znaku złożonego (np. emoji) w połowie */
+        NSRange r = [clean rangeOfComposedCharacterSequencesForRange:NSMakeRange(0, kMaxNameLength)];
+        clean = [clean substringWithRange:r];
+    }
+    NSMutableDictionary *m = [NSMutableDictionary dictionaryWithDictionary:RZNames()];
+    if ([clean length] && ![clean isEqualToString:stop.title]) {
+        [m setObject:clean forKey:stop.key];
+    } else {
+        [m removeObjectForKey:stop.key];       /* pusta nazwa albo taka sama jak oryginalna = wróć do oryginału */
+    }
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    if ([m count]) [d setObject:m forKey:kNamesKey]; else [d removeObjectForKey:kNamesKey];
+    [d synchronize];
+}
+
+- (NSUInteger)customNameCount
+{
+    return [RZNames() count];
+}
+
+- (void)clearCustomNames
+{
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    [d removeObjectForKey:kNamesKey];
+    [d synchronize];
 }
 
 #pragma mark - Ulubione i ustawienia

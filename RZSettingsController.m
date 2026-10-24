@@ -19,6 +19,7 @@ enum {
     DataRemoveExpired,
     DataRemoveAll,
     DataClearFavs,
+    DataClearNames,
     DataReminders,
     DataRows
 };
@@ -27,7 +28,7 @@ enum {
 @end
 
 @implementation RZSettingsController {
-    int _pending;       /* którą akcję potwierdza arkusz: 1 = przeterminowane, 2 = wszystko, 3 = ulubione */
+    int _pending;       /* którą akcję potwierdza arkusz: 1 = przeterminowane, 2 = wszystko, 3 = ulubione, 4 = przypomnienia, 5 = własne nazwy */
 }
 
 - (id)init
@@ -236,6 +237,10 @@ enum {
                 cell.textLabel.text = RZL(@"Wyczyść ulubione");
                 cell.detailTextLabel.text = [NSString stringWithFormat:RZL(@"gwiazdek: %lu"), (unsigned long)[sc favoriteCount]];
                 break;
+            case DataClearNames:
+                cell.textLabel.text = RZL(@"Wyczyść własne nazwy");
+                cell.detailTextLabel.text = [NSString stringWithFormat:RZL(@"nazw: %lu"), (unsigned long)[sc customNameCount]];
+                break;
             default:
                 cell.textLabel.text = RZL(@"Anuluj wszystkie przypomnienia");
                 cell.detailTextLabel.text = [NSString stringWithFormat:RZL(@"ustawionych: %lu"),
@@ -327,6 +332,13 @@ enum {
                 [self confirm:3 title:RZL(@"Usunąć wszystkie gwiazdki z przystanków?") button:RZL(@"Wyczyść ulubione")];
             }
             break;
+        case DataClearNames:
+            if ([sc customNameCount] == 0) {
+                [self say:RZL(@"Brak własnych nazw") text:RZL(@"Żaden przystanek nie ma własnej nazwy. Nadasz ją na ekranie przystanku, w wierszu Nazwa.")];
+            } else {
+                [self confirm:5 title:RZL(@"Usunąć wszystkie własne nazwy przystanków? Wrócą nazwy z rozkładu.") button:RZL(@"Wyczyść własne nazwy")];
+            }
+            break;
         default:
             break;
     }
@@ -361,6 +373,9 @@ enum {
         [[UIApplication sharedApplication] cancelAllLocalNotifications];
     } else if (_pending == 3) {
         [sc clearFavorites];
+        [[NSNotificationCenter defaultCenter] postNotificationName:RZScheduleDidReloadNotification object:sc];
+    } else if (_pending == 5) {
+        [sc clearCustomNames];
         [[NSNotificationCenter defaultCenter] postNotificationName:RZScheduleDidReloadNotification object:sc];
     }
     _pending = 0;
