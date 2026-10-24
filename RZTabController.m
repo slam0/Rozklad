@@ -139,6 +139,7 @@ static NSString *const kMsgID = @"msg";
         [a show];
         return;
     }
+    if ([site hasSuffix:@"/"]) site = [site stringByAppendingString:@"kreator/"];   /* kreator przystanków leży w podfolderze */
     NSString *sep = ([site rangeOfString:@"?"].location == NSNotFound) ? @"?" : @"&";
     site = [NSString stringWithFormat:@"%@%@lang=%@", site, sep, RZLangCode()];
     [[UIApplication sharedApplication] openURL:[NSURL URLWithString:site]];

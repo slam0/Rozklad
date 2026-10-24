@@ -377,6 +377,7 @@ enum {
         [self say:RZL(@"Brak adresu strony") text:RZL(@"Otwórz w Safari stronę z rozkładem, wybierz przystanki i dotknij „Otwórz w aplikacji Rozkład”. Potem aplikacja zapamięta adres.")];
         return;
     }
+    if ([site hasSuffix:@"/"]) site = [site stringByAppendingString:@"kreator/"];   /* kreator przystanków leży w podfolderze */
     NSString *sep = ([site rangeOfString:@"?"].location == NSNotFound) ? @"?" : @"&";
     site = [NSString stringWithFormat:@"%@%@lang=%@", site, sep, RZLangCode()];
     [[UIApplication sharedApplication] openURL:[NSURL URLWithString:site]];

@@ -264,3 +264,22 @@ u góry informuje, kiedy wygaśnie.
 ## Ekran powitalny
 
 `Resources/Default*.png` to ekran startowy (logo z czerwonymi promieniami). Po uruchomieniu aplikacja dodatkowo przytrzymuje go ok. 1,4 s i płynnie wygasza (`AppDelegate.m`). Aby zmienić czas, edytuj `1.4` w `didFinishLaunchingWithOptions`.
+
+## Strona główna, pobieranie i repozytorium Cydii
+
+Adresy (po włączeniu GitHub Pages):
+
+* `https://slam0.github.io/Rozklad/` – strona główna z pobieraniem aplikacji (`site/index.html`),
+* `https://slam0.github.io/Rozklad/kreator/` – kreator przystanków (`site/kreator/index.html`),
+* `https://slam0.github.io/Rozklad/repo/` – repozytorium dla Cydii (Manage → Sources → Edit → Add),
+* `https://slam0.github.io/Rozklad/pobierz/Rozklad.deb` – stały adres pliku .deb.
+
+Jak to działa: workflow **Zbuduj aplikację** po zbudowaniu publikuje plik `.deb` (i `.ipa`) jako wydanie
+(Release) o stałej nazwie `najnowsza` i uruchamia workflow **Strona z rozkładem**. Ten pobiera wydanie,
+skrypt `tools/build_repo.py` składa z niego repozytorium APT (`Packages`, `Packages.gz`, `Packages.bz2`, `Release`)
+oraz plik `pobierz.json`, który czyta strona główna. Dane rozkładowe (`index.json`, `d/…`) zostają w głównym
+folderze strony, więc aplikacja i linki `rozklad://import?u=…` działają jak wcześniej.
+
+Kolejność pierwszego uruchomienia: 1) Actions → „Zbuduj aplikację” → Run workflow, 2) poczekaj, aż sam odświeży stronę.
+W ustawieniach repozytorium (Settings → Actions → General → Workflow permissions) musi być zezwolenie na zapis
+(„Read and write permissions”) – inaczej publikacja wydania się nie uda.

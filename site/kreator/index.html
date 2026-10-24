@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rozkład – wybór przystanków</title>
+<link rel="icon" href="../icon.png"><link rel="apple-touch-icon" href="../icon.png">
+<style>
+body{margin:0;font:16px/1.4 "Helvetica Neue",Helvetica,Arial,sans-serif;color:#2b2b2b;background-color:#d8d3c5;-webkit-text-size-adjust:100%;background-image:-webkit-repeating-linear-gradient(45deg,rgba(255,255,255,.22) 0,rgba(255,255,255,.22) 1px,transparent 1px,transparent 4px),-webkit-repeating-linear-gradient(-45deg,rgba(0,0,0,.06) 0,rgba(0,0,0,.06) 1px,transparent 1px,transparent 4px);background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.22) 0,rgba(255,255,255,.22) 1px,transparent 1px,transparent 4px),repeating-linear-gradient(-45deg,rgba(0,0,0,.06) 0,rgba(0,0,0,.06) 1px,transparent 1px,transparent 4px)}
+header{position:relative;margin:0 0 4px;padding:14px 16px;color:#f6ecd8;background-color:#5a3a22;background-image:-webkit-linear-gradient(top,#7d5434,#4a2e1a);background-image:linear-gradient(to bottom,#7d5434,#4a2e1a);border-bottom:1px solid #22120a;-webkit-box-shadow:0 2px 5px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.22);box-shadow:0 2px 5px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.22)}
+header:after{content:"";position:absolute;left:5px;right:5px;top:5px;bottom:5px;border:1px dashed rgba(246,226,186,.6);border-radius:4px;pointer-events:none}
+.hd{display:table;max-width:640px;margin:0 auto}
+.hd>div{display:table-cell;vertical-align:middle}
+.hd img{display:block;width:57px;height:57px;margin-right:14px;border-radius:13px;-webkit-box-shadow:0 2px 4px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.35);box-shadow:0 2px 4px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.35)}
+.hd b{display:block;font-size:22px;line-height:1.15;text-shadow:0 -1px 0 rgba(0,0,0,.8)}
+.hd span{display:block;margin-top:3px;font-size:13px;color:#e4d3b3;text-shadow:0 -1px 0 rgba(0,0,0,.6)}
+.wrap{max-width:640px;margin:0 auto;padding:0 12px 30px}
+.lead{margin:14px 4px 0;color:#5f594b;text-shadow:0 1px 0 rgba(255,255,255,.75)}
+.gl{margin:20px 6px 7px;font-size:15px;font-weight:bold;color:#6d675a;text-shadow:0 1px 0 #fff}
+.note{margin:0 4px 10px;font-size:14px;color:#6d675a;text-shadow:0 1px 0 rgba(255,255,255,.75)}
+.grp{overflow:hidden;margin:0;padding:0;list-style:none;background:#fff;border:1px solid #a29e90;border-radius:10px;-webkit-box-shadow:0 1px 0 rgba(255,255,255,.8);box-shadow:0 1px 0 rgba(255,255,255,.8)}
+.grp:empty{display:none}
+.grp+.grp{margin-top:10px}
+.pad{padding:12px}
+.pad p{margin:0 0 10px}
+a{color:#1b62c8}
+[hidden]{display:none!important}
+input[type=text]{width:100%;-webkit-box-sizing:border-box;box-sizing:border-box;padding:9px 14px;font:inherit;border:1px solid #8a8a8a;border-radius:18px;background:#fff;-webkit-box-shadow:inset 0 2px 4px rgba(0,0,0,.35);box-shadow:inset 0 2px 4px rgba(0,0,0,.35)}
+input[type=text]:disabled{background:#eee}
+#msg{margin:0;font-weight:bold;color:#5a4a2a}
+#msg.bad{color:#a60f25}
+#msg:empty{display:none}
+li{padding:10px 12px;border-top:1px solid #dcdcdc;text-shadow:0 1px 0 #fff}
+li:first-child{border-top:0}
+li small{color:#777}
+li button{width:28px;height:28px;margin-right:8px;padding:0;font:bold 18px/24px Helvetica,Arial,sans-serif;text-align:center;color:#fff;text-shadow:0 -1px 0 rgba(0,0,0,.5);cursor:pointer;border:1px solid #1f5c14;border-radius:50%;background-color:#3c9d2a;background-image:-webkit-linear-gradient(top,#7dd35f,#2f8a1e);background-image:linear-gradient(to bottom,#7dd35f,#2f8a1e);-webkit-box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 1px 2px rgba(0,0,0,.4);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 1px 2px rgba(0,0,0,.4)}
+li button[data-r]{border-color:#6d0715;background-color:#c8102e;background-image:-webkit-linear-gradient(top,#e8505f,#a60f25);background-image:linear-gradient(to bottom,#e8505f,#a60f25)}
+#steps{display:table;table-layout:fixed;width:100%;margin:14px 0 0;border:1px solid #6b6552;border-radius:10px;overflow:hidden;-webkit-box-shadow:0 1px 0 rgba(255,255,255,.8);box-shadow:0 1px 0 rgba(255,255,255,.8)}
+.st{display:table-cell;padding:9px 2px 8px;text-align:center;font:bold 13px/1.2 "Helvetica Neue",Helvetica,Arial,sans-serif;color:#4a3b22;text-shadow:0 1px 0 #fff;cursor:pointer;border-left:1px solid #b9b39e;background-color:#ece6d3;background-image:-webkit-linear-gradient(top,#fffdf4,#e1dac4);background-image:linear-gradient(to bottom,#fffdf4,#e1dac4)}
+.st:first-child{border-left:0}
+.st i{display:block;width:24px;height:24px;margin:0 auto 4px;font:bold 14px/23px Helvetica,Arial,sans-serif;font-style:normal;color:#fff;text-shadow:0 -1px 0 rgba(0,0,0,.5);border-radius:12px;-webkit-box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 1px 2px rgba(0,0,0,.4);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 1px 2px rgba(0,0,0,.4)}
+.st small{display:block;font-weight:normal;color:#8a836f}
+.st.on{color:#fff;text-shadow:0 -1px 0 rgba(0,0,0,.5);background-color:#5a3a22;background-image:-webkit-linear-gradient(top,#4a2e1a,#7d5434);background-image:linear-gradient(to bottom,#4a2e1a,#7d5434)}
+.st.on small{color:#e4d3b3}
+.nav{margin-top:16px;overflow:hidden}
+.nav button{float:left;width:48%}
+.nav button+button{float:right}
+.btn{display:block;padding:13px;text-align:center;text-decoration:none;font:bold 17px "Helvetica Neue",Helvetica,Arial,sans-serif;color:#333;text-shadow:0 1px 0 #fff;cursor:pointer;border:1px solid #8a8a8a;border-radius:10px;background-color:#e4e4e4;background-image:-webkit-linear-gradient(top,#fdfdfd,#d3d3d3);background-image:linear-gradient(to bottom,#fdfdfd,#d3d3d3);-webkit-box-shadow:inset 0 1px 0 #fff,0 2px 4px rgba(0,0,0,.3);box-shadow:inset 0 1px 0 #fff,0 2px 4px rgba(0,0,0,.3)}
+.btn.red{color:#fff;text-shadow:0 -1px 0 rgba(0,0,0,.55);border-color:#6d0715;background-color:#c8102e;background-image:-webkit-linear-gradient(top,#e8505f,#a60f25);background-image:linear-gradient(to bottom,#e8505f,#a60f25);-webkit-box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 2px 4px rgba(0,0,0,.4);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 2px 4px rgba(0,0,0,.4)}
+.btn:active{background-image:-webkit-linear-gradient(top,#cfcfcf,#e9e9e9);background-image:linear-gradient(to bottom,#cfcfcf,#e9e9e9)}
+.btn.red:active{background-image:-webkit-linear-gradient(top,#a60f25,#c8102e);background-image:linear-gradient(to bottom,#a60f25,#c8102e)}
+.btn:disabled{color:#eee;text-shadow:0 -1px 0 rgba(0,0,0,.3);cursor:default;border-color:#777;background-color:#999;background-image:-webkit-linear-gradient(top,#bbb,#8d8d8d);background-image:linear-gradient(to bottom,#bbb,#8d8d8d)}
+#sum{margin:12px 4px 0;font-size:14px;color:#5f594b;text-shadow:0 1px 0 rgba(255,255,255,.75)}
+#fin{margin-top:16px}
+#fin .btn{width:100%;-webkit-box-sizing:border-box;box-sizing:border-box;margin-top:10px}
+#fin p{margin:0 0 6px}
+#warn{margin:12px 4px 0;font-weight:bold;color:#a60f25}
+#warn:empty{display:none}
+#langs{position:absolute;top:9px;right:12px;z-index:3;font-size:12px}
+#langs a{display:inline-block;margin-left:5px;padding:3px 8px;color:#f6ecd8;text-decoration:none;font-weight:bold;border:1px solid rgba(246,226,186,.55);border-radius:10px;text-shadow:0 -1px 0 rgba(0,0,0,.6);cursor:pointer}
+#langs a.on{color:#4a2e1a;text-shadow:0 1px 0 rgba(255,255,255,.5);background:#f1dfba;border-color:#f1dfba}
+#dl{margin-top:10px}
+</style></head><body>
+<header><div id="langs"></div><div class="hd"><div><img src="../icon.png" alt=""></div><div><b>Rozkład</b><span data-t="sub"></span></div></div></header>
+<div class="wrap">
+<p class="lead" data-t="lead"></p>
+
+<div class="gl" data-t="gl_data"></div>
+<div class="grp pad"><div id="msg"></div><div id="again" hidden><button class="btn" id="retry" style="margin-top:10px;width:100%" data-t="retry"></button></div></div>
+<p class="note" id="age"></p>
+
+<section id="wiz" hidden>
+<div id="steps"></div>
+<div class="gl" id="ph"></div>
+<p class="note" id="pd"></p>
+<div class="grp pad"><input type="text" id="q" placeholder="" autocomplete="off" autocorrect="off" autocapitalize="off"></div>
+<ul id="res" class="grp"></ul>
+<div class="gl"><span data-t="chosen_step"></span> <span id="cnt">0</span>/10</div>
+<ul id="sel" class="grp"></ul>
+<div class="nav"><button class="btn" id="back" data-t="back"></button><button class="btn red" id="next" data-t="next"></button></div>
+<div id="fin" class="grp pad" hidden>
+<p id="sum"></p>
+<a class="btn red" id="open" href="#" data-t="open"></a>
+<p class="note" style="margin:10px 0 0" data-t="open_note"></p>
+<div id="dl" hidden><button class="btn" id="get" data-t="get_btn"></button><div id="warn"></div></div>
+</div>
+</section>
+<p class="note" style="margin-top:26px;text-align:center" data-t="foot"></p>
+<p class="note" style="text-align:center"><a id="home" href="../" data-t="home"></a></p>
+</div>
+<script>
+(function(){
+var KINDS=[
+  {k:'b',bit:1,col:'#c8102e'},
+  {k:'t',bit:2,col:'#2a73d6'},
+  {k:'p',bit:4,col:'#2f8a3a'},
+  {k:'m',bit:8,col:'#1f3a8f'}];
+var KB={b:1,t:2,p:4,m:8};
+var MAX=10,IDX=null,G=[],chosen={b:[],t:[],p:[],m:[]},step=0;
+var BASE=location.href.replace(/[?#].*$/,'').replace(/[^\/]*$/,'').replace(/kreator\/$/,'');
+var $=function(i){return document.getElementById(i)};
+
+/* ---------- języki: polski, angielski, rosyjski ---------- */
+var I={
+pl:{title:'Rozkład – wybór przystanków',sub:'wybierz przystanki i otwórz je w aplikacji',
+ lead:'Wybierz przystanki w czterech krokach (autobus, tramwaj, pociąg, metro). Na końcu dotknij „Otwórz w aplikacji Rozkład” – aplikacja sama pobierze rozkład tych przystanków.',
+ gl_data:'Dane rozkładowe',home:'← Strona główna (pobieranie aplikacji)',retry:'Spróbuj jeszcze raz',ph_q:'Zacznij pisać nazwę przystanku…',chosen_step:'Wybrane w tym kroku:',
+ back:'← Wstecz',next:'Dalej →',open:'Otwórz w aplikacji Rozkład',
+ open_note:'Jeśli nic się nie dzieje, sprawdź, czy aplikacja Rozkład jest zainstalowana na tym telefonie.',
+ get_btn:'Pobierz plik rozklad.json (na komputer)',
+ foot:'Dane rozkładowe: ZTM Warszawa (GTFS), udostępnia mkuran.pl. Rozkład może być nieaktualny, sprawdzaj datę ważności.',
+ loading:'Ładuję listę przystanków…',loading_kb:'Ładuję listę przystanków… {0} KB',
+ loaded:'Wczytano przystanków: {0}. Przejdź przez cztery kroki poniżej.',
+ age_gen:'Dane z dnia {0}',age_end:', rozkład ważny do {0}',age_exp:'UWAGA: ten rozkład już wygasł, poczekaj na nowe dane.',
+ err_data:'Błąd w danych: {0}',err_list:'Nie udało się pobrać listy przystanków (kod {0}). Sprawdź połączenie z internetem.',
+ err_file:'Nie udało się pobrać pliku {0} (kod {1}).',
+ k_b:'Autobusy',k_t:'Tramwaje',k_p:'Pociągi',k_m:'Metro',
+ d_b:'przystanki autobusowe',d_t:'przystanki tramwajowe',d_p:'stacje i przystanki kolejowe',d_m:'stacje metra',
+ sel_short:'wybr.',step:'Krok {0} z 4: {1}',
+ pd:'Wyszukaj {0} i dodaj je do listy (maks. {1}). Jeśli nie potrzebujesz tego rodzaju, po prostu dotknij „Dalej”.',
+ sum:'Razem wybrano: {0} ({1}), słupków: {2}.',sum0:'Nie wybrano jeszcze żadnego przystanku. Wróć do któregoś z kroków.',
+ poles:'({0} słup.: {1})',map:'mapa',nores:'Brak wyników dla „{0}” wśród przystanków tego rodzaju',
+ err_search:'Błąd wyszukiwania: {0}',dl_progress:'Pobieram {0}/{1}…',dl_done:'Gotowe: rozklad.json, {0} KB.',dl_err:'Błąd: {0}'},
+en:{title:'Rozkład – choose stops',sub:'choose stops and open them in the app',
+ lead:'Choose stops in four steps (bus, tram, train, metro). At the end tap “Open in the Rozkład app” – the app will download the timetable for these stops by itself.',
+ gl_data:'Timetable data',home:'← Home page (app download)',retry:'Try again',ph_q:'Stop name…',chosen_step:'Chosen in this step:',
+ back:'← Back',next:'Next →',open:'Open in the Rozkład app',
+ open_note:'If nothing happens, check that the Rozkład app is installed on this phone.',
+ get_btn:'Download the rozklad.json file (to a computer)',
+ foot:'Timetable data: ZTM Warszawa (GTFS), provided by mkuran.pl. The timetable may be out of date, check the expiry date.',
+ loading:'Loading the stop list…',loading_kb:'Loading the stop list… {0} KB',
+ loaded:'Loaded stops: {0}. Go through the four steps below.',
+ age_gen:'Data from {0}',age_end:', timetable valid until {0}',age_exp:'ATTENTION: this timetable has already expired, wait for new data.',
+ err_data:'Error in the data: {0}',err_list:'Could not download the stop list (code {0}). Check your internet connection.',
+ err_file:'Could not download the file {0} (code {1}).',
+ k_b:'Buses',k_t:'Trams',k_p:'Trains',k_m:'Metro',
+ d_b:'bus stops',d_t:'tram stops',d_p:'railway stations and stops',d_m:'metro stations',
+ sel_short:'sel.',step:'Step {0} of 4: {1}',
+ pd:'Search for {0} and add them to the list (max {1}). If you do not need this kind, just tap “Next”.',
+ sum:'Chosen in total: {0} ({1}), stop points: {2}.',sum0:'No stop chosen yet. Go back to one of the steps.',
+ poles:'({0} stop pts: {1})',map:'map',nores:'No results for “{0}” among stops of this kind',
+ err_search:'Search error: {0}',dl_progress:'Downloading {0}/{1}…',dl_done:'Done: rozklad.json, {0} KB.',dl_err:'Error: {0}'},
+ru:{title:'Rozkład – выбор остановок',sub:'выберите остановки и откройте их в приложении',
+ lead:'Выберите остановки за четыре шага (автобус, трамвай, поезд, метро). В конце нажмите «Открыть в приложении Rozkład» – приложение само загрузит расписание этих остановок.',
+ gl_data:'Данные расписания',home:'← Главная (скачать приложение)',retry:'Попробовать ещё раз',ph_q:'Название остановки…',chosen_step:'Выбрано на этом шаге:',
+ back:'← Назад',next:'Далее →',open:'Открыть в приложении Rozkład',
+ open_note:'Если ничего не происходит, проверьте, что приложение Rozkład установлено на этом телефоне.',
+ get_btn:'Скачать файл rozklad.json (на компьютер)',
+ foot:'Данные расписания: ZTM Warszawa (GTFS), предоставляет mkuran.pl. Расписание может быть неактуальным, проверяйте дату действия.',
+ loading:'Загружаю список остановок…',loading_kb:'Загружаю список остановок… {0} КБ',
+ loaded:'Загружено остановок: {0}. Пройдите четыре шага ниже.',
+ age_gen:'Данные от {0}',age_end:', расписание действует до {0}',age_exp:'ВНИМАНИЕ: это расписание уже устарело, дождитесь новых данных.',
+ err_data:'Ошибка в данных: {0}',err_list:'Не удалось загрузить список остановок (код {0}). Проверьте подключение к интернету.',
+ err_file:'Не удалось загрузить файл {0} (код {1}).',
+ k_b:'Автобусы',k_t:'Трамваи',k_p:'Поезда',k_m:'Метро',
+ d_b:'автобусные остановки',d_t:'трамвайные остановки',d_p:'железнодорожные станции и остановки',d_m:'станции метро',
+ sel_short:'выбр.',step:'Шаг {0} из 4: {1}',
+ pd:'Найдите {0} и добавьте их в список (макс. {1}). Если этот тип вам не нужен, просто нажмите «Далее».',
+ sum:'Всего выбрано: {0} ({1}), остановочных пунктов: {2}.',sum0:'Остановки ещё не выбраны. Вернитесь к одному из шагов.',
+ poles:'({0} ост. пунктов: {1})',map:'карта',nores:'Нет результатов для «{0}» среди остановок этого типа',
+ err_search:'Ошибка поиска: {0}',dl_progress:'Загружаю {0}/{1}…',dl_done:'Готово: rozklad.json, {0} КБ.',dl_err:'Ошибка: {0}'}
+};
+var LANG='pl',SAY=null;
+function t(k,a){var s=(I[LANG]&&I[LANG][k])||I.pl[k]||k,i;
+  if(a)for(i=0;i<a.length;i++)s=s.split('{'+i+'}').join(a[i]);
+  return s}
+function detectLang(){
+  var m=/[?&]lang=(pl|en|ru)/.exec(location.search),s,n;
+  if(m)return m[1];
+  try{s=localStorage.getItem('rzlang');if(s&&I[s])return s}catch(e){}
+  n=String(navigator.language||navigator.userLanguage||'pl').toLowerCase().slice(0,2);
+  return n==='ru'?'ru':(n==='pl'?'pl':'en')}
+function ageText(){
+  var today=new Date(),ymd=''+today.getFullYear()+p2(today.getMonth()+1)+p2(today.getDate()),s;
+  if(!IDX){$('age').textContent='';return}
+  s=t('age_gen',[IDX.gen])+(IDX.end?t('age_end',[dmy(IDX.end)]):'')+'.';
+  if(IDX.end&&IDX.end<ymd)s+=' '+t('age_exp');
+  $('age').textContent=s}
+function setLang(l){
+  var els=document.querySelectorAll('[data-t]'),i,h='',L=['pl','en','ru'];
+  LANG=l;
+  for(i=0;i<els.length;i++)els[i].textContent=t(els[i].getAttribute('data-t'));
+  $('q').placeholder=t('ph_q');
+  document.title=t('title');
+  document.documentElement.lang=l;
+  $('home').href='../?lang='+l;
+  for(i=0;i<L.length;i++)h+='<a data-l="'+L[i]+'"'+(L[i]===l?' class="on"':'')+'>'+L[i].toUpperCase()+'</a>';
+  $('langs').innerHTML=h;
+  if(SAY)say(SAY[0],SAY[1],SAY[2]);
+  ageText();
+  if(IDX)render()}
+
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return '&#'+c.charCodeAt(0)+';'})}
+var MAP={};(function(){var g={a:'ąáàâäãåā',c:'ćč',d:'ď',e:'éèêëęě',i:'íìîï',l:'ł',n:'ńňñ',o:'óòôöõő',r:'ř',s:'śš',t:'ť',u:'úùûüůű',y:'ý',z:'źžż'},k,i;
+  for(k in g)for(i=0;i<g[k].length;i++)MAP[g[k].charAt(i)]=k})();
+function nz(s){var o='',i,c;s=String(s).toLowerCase();
+  for(i=0;i<s.length;i++){c=s.charAt(i);o+=MAP[c]||c}
+  return o}
+function say(k,a,bad){var m=$('msg');SAY=[k,a,bad];m.textContent=t(k,a);m.className=bad?'bad':''}
+function p2(n){return n<10?'0'+n:''+n}
+function dmy(s){return s&&s.length===8?s.slice(6,8)+'.'+s.slice(4,6)+'.'+s.slice(0,4):''}
+
+/* ---------- pobieranie ---------- */
+function get(url,ok,fail,prog){
+  var x=new XMLHttpRequest();
+  x.open('GET',url,true);
+  x.onreadystatechange=function(){
+    if(x.readyState!==4)return;
+    if(x.status===200)ok(x.responseText);else fail(x.status)};
+  if(prog)x.onprogress=function(e){prog(e.loaded)};
+  x.send(null);
+  return x}
+function getAll(urls,cb,prog){
+  var out=[],i=0,active=0,done=0,err=null,fin=false;
+  function pump(){
+    while(!err&&active<5&&i<urls.length){(function(n){
+      active++;
+      get(urls[n],function(t){out[n]=t;active--;done++;prog(done,urls.length);pump()},
+        function(s){if(!err)err=[urls[n],s];active--;pump()})
+    })(i++)}
+    if(active===0&&!fin&&(err||done===urls.length)){fin=true;cb(err,out)}}
+  pump()}
+
+/* ---------- zapamiętywanie wyboru w tej przeglądarce ---------- */
+function gid(g){return g[0]+'|'+g[5].map(function(p){return p[1]}).join(',')}
+function save(){try{
+  var o={};KINDS.forEach(function(K){o[K.k]=chosen[K.k].map(gid)});
+  localStorage.setItem('rzsel',JSON.stringify(o))}catch(e){}}
+function restore(){try{
+  var o=JSON.parse(localStorage.getItem('rzsel')||'null'),by={};
+  if(!o)return;
+  G.forEach(function(g){by[gid(g)]=g});
+  KINDS.forEach(function(K){chosen[K.k]=(o[K.k]||[]).map(function(id){return by[id]}).filter(function(g){return g&&(g[2]&K.bit)}).slice(0,MAX)})}catch(e){}}
+
+/* ---------- wczytanie listy przystanków ---------- */
+function load(){
+  $('wiz').hidden=true;$('again').hidden=true;say('loading');
+  get(BASE+'index.json?t='+(+new Date()),function(t){
+    try{
+      IDX=JSON.parse(t);G=IDX.g;
+      restore();
+      say('loaded',[G.length]);
+      ageText();
+      $('wiz').hidden=false;render();
+    }catch(e){say('err_data',[e.message],true);$('again').hidden=false}
+  },function(s){
+    say('err_list',[s],true);$('again').hidden=false
+  },function(n){say('loading_kb',[Math.round(n/1024)])})}
+$('retry').onclick=load;
+
+/* ---------- kroki ---------- */
+function info(g,bit){
+  var ps=g[5].filter(function(p){return p[2]&bit});
+  return esc(g[0])+' <small>'+t('poles',[ps.length,esc(ps.map(function(p){return p[1]}).join(', '))])+'</small>'+(g[3]?' <a href="https://www.openstreetmap.org/?mlat='+g[3]+'&amp;mlon='+g[4]+'&amp;zoom=17" target="_blank">'+t('map')+'</a>':'')}
+function total(){return KINDS.reduce(function(n,K){return n+chosen[K.k].length},0)}
+function plan(){
+  var m={},order=[];
+  KINDS.forEach(function(K){chosen[K.k].forEach(function(g){g[5].forEach(function(p){
+    if(!(p[2]&K.bit))return;
+    if(m[p[0]]===undefined){m[p[0]]=0;order.push(p[0])}
+    m[p[0]]|=K.bit})})});
+  return order.map(function(n){return [n,m[n]]})}
+function link(){
+  var pl=plan();
+  return 'rozklad://import?u='+encodeURIComponent(BASE)+'&v='+IDX.v+'&p='+pl.map(function(x){return x[0]+'.'+x[1]}).join(',')}
+function render(){
+  var K=KINDS[step],list=chosen[K.k],tot,pl;
+  $('steps').innerHTML=KINDS.map(function(X,n){
+    return '<div class="st'+(n===step?' on':'')+'" data-s="'+n+'"><i style="background:'+X.col+'">'+(n+1)+'</i>'+t('k_'+X.k)+'<small>'+chosen[X.k].length+' '+t('sel_short')+'</small></div>'}).join('');
+  $('ph').textContent=t('step',[step+1,t('k_'+K.k)]);
+  $('pd').textContent=t('pd',[t('d_'+K.k),MAX]);
+  $('sel').innerHTML=list.map(function(g,n){return '<li><button data-r="'+n+'">×</button> '+info(g,K.bit)+'</li>'}).join('');
+  $('cnt').textContent=list.length;
+  $('q').disabled=list.length>=MAX;$('q').value='';$('res').innerHTML='';
+  $('back').disabled=step===0;
+  $('next').style.display=step===3?'none':'';
+  $('back').style.width=step===3?'100%':'';
+  $('fin').hidden=step!==3;
+  if(step===3){
+    tot=total();pl=plan();
+    $('sum').textContent=tot?t('sum',[tot,KINDS.map(function(X){return t('k_'+X.k).toLowerCase()+' '+chosen[X.k].length}).join(', '),pl.length]):t('sum0');
+    $('open').style.display=tot?'':'none';
+    if(tot)$('open').href=link();
+    $('dl').hidden=!(tot&&canDownload());
+    $('warn').textContent='';
+  }
+  save()}
+$('steps').onclick=function(e){var n=(e||window.event).target;
+  while(n&&n!==this&&(!n.getAttribute||n.getAttribute('data-s')===null))n=n.parentNode;
+  if(n&&n!==this){step=+n.getAttribute('data-s');render()}};
+$('back').onclick=function(){if(step>0){step--;render()}};
+$('next').onclick=function(){if(step<3){step++;render()}};
+$('q').oninput=function(){
+  try{
+    var K=KINDS[step],qs=nz(this.value).replace(/^\s+|\s+$/g,''),h='',n=0,i,g,k,pass,hit;
+    if(qs.length>1&&chosen[K.k].length<MAX){
+      for(pass=0;pass<2&&n<30;pass++){
+        for(i=0;i<G.length&&n<30;i++){g=G[i];
+          if(!(g[2]&K.bit)||chosen[K.k].indexOf(g)>=0)continue;
+          k=g[1]||g[0].toLowerCase();
+          hit=pass===0?(k.indexOf(qs)===0||k.indexOf(' '+qs)>=0):(k.indexOf(qs)>=0&&!(k.indexOf(qs)===0||k.indexOf(' '+qs)>=0));
+          if(hit){n++;h+='<li><button data-i="'+i+'">+</button> '+info(g,K.bit)+'</li>'}}}
+      if(!n)h='<li>'+t('nores',[esc(this.value)])+'</li>'}
+    $('res').innerHTML=h;
+  }catch(e){say('err_search',[e.message],true)}};
+$('res').onclick=function(e){var i=(e||window.event).target.getAttribute('data-i'),K=KINDS[step];
+  if(i!==null&&chosen[K.k].length<MAX){chosen[K.k].push(G[i]);render();if(chosen[K.k].length<MAX)$('q').focus()}};
+$('sel').onclick=function(e){var i=(e||window.event).target.getAttribute('data-r');if(i!==null){chosen[KINDS[step].k].splice(i,1);render()}};
+
+/* ---------- plik rozklad.json do pobrania (na komputerze) ---------- */
+function canDownload(){
+  try{return !!(window.Blob&&window.URL&&window.URL.createObjectURL&&('download' in document.createElement('a')))}catch(e){return false}}
+function assemble(texts,pl){
+  var svc=JSON.parse(texts[0]),remap={},S=[],stops=[],i,j,p,d,gr,k,mins;
+  for(i=0;i<pl.length;i++){
+    p=JSON.parse(texts[i+1]);d=[];
+    for(j=0;j<p.g.length;j++){gr=p.g[j];
+      if(!(pl[i][1]&KB[gr[3]]))continue;
+      if(remap[gr[2]]===undefined){remap[gr[2]]=S.length;S.push(svc.svc[gr[2]])}
+      for(k=0;k<gr[4].length;k++)d.push([gr[0],gr[1],remap[gr[2]],gr[4][k],gr[3]])}
+    d.sort(function(a,b){return a[3]-b[3]});
+    if(d.length)stops.push({n:p.n,c:p.c,d:d})}
+  return {gen:svc.gen,end:svc.end,stops:stops,svc:S}}
+$('get').onclick=function(){
+  var pl=plan(),root=BASE+'d/'+IDX.v+'/',urls=[root+'svc.json'],i,btn=this;
+  for(i=0;i<pl.length;i++)urls.push(root+'s/'+pl[i][0]+'.json');
+  btn.disabled=true;$('warn').textContent=t('dl_progress',[0,urls.length]);
+  getAll(urls,function(err,texts){
+    btn.disabled=false;
+    if(err){$('warn').textContent=t('err_file',err);return}
+    try{
+      var o=assemble(texts,pl),json=JSON.stringify(o).replace(/</g,'\\u003c'),b=new Blob([json],{type:'application/json'}),a=document.createElement('a');
+      a.href=URL.createObjectURL(b);a.download='rozklad.json';document.body.appendChild(a);a.click();document.body.removeChild(a);
+      $('warn').textContent=t('dl_done',[Math.round(json.length/1024)]);
+      window.__rz=o;
+    }catch(e){$('warn').textContent=t('dl_err',[e.message])}
+  },function(n,m){$('warn').textContent=t('dl_progress',[n,m])})};
+
+$('langs').onclick=function(e){var n=(e||window.event).target;
+  var l=n&&n.getAttribute?n.getAttribute('data-l'):null;
+  if(l){try{localStorage.setItem('rzlang',l)}catch(x){}setLang(l)}};
+setLang(detectLang());
+load();
+})();
+</script>
+</body></html>
