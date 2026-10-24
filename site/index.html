@@ -88,11 +88,11 @@ input.repo{margin-top:8px;font-size:14px;text-align:center}
       <a class="btn red" href="pobierz/Rozklad.ipa" data-t="b_ipa"></a>
       <p class="tiny" data-t="n_ipa"></p>
     </div>
-    <a class="btn" id="cyd" href="#" data-t="b_cydia" style="margin-top:14px"></a>
-    <p class="tiny" style="margin-top:12px"><b data-t="repo_t"></b></p>
-    <input type="text" class="repo" id="repo" readonly value="">
-    <p class="tiny" data-t="repo_how"></p>
   </div>
+  <a class="btn" id="cyd" href="#" data-t="b_cydia" style="margin-top:14px"></a>
+  <p class="tiny" style="margin-top:12px"><b data-t="repo_t"></b></p>
+  <input type="text" class="repo" id="repo" readonly value="">
+  <p class="tiny"><span data-t="repo_how"></span> <a id="repopage" href="#" data-t="repo_page"></a></p>
 </div>
 
 <div class="gl" data-t="gl_start"></div>
@@ -119,7 +119,7 @@ var I={
 pl:{title:'Rozkład – rozkład jazdy offline dla iOS 6',sub:'rozkład jazdy offline dla iOS 6',
  lead:'Rozkład jazdy Warszawy w kieszeni, bez internetu: autobusy, tramwaje, pociągi i metro. Darmowa aplikacja na iPhone’a i iPoda touch z iOS 6.',
  gl_dl:'Pobierz',soon:'Pierwsza wersja aplikacji zostanie tu opublikowana wkrótce.',
- ver:'Wersja {0} · {1} · {2} KB',b_ipa:'Pobierz aplikację (.ipa)',n_ipa:'Plik .ipa otwórz w Filza lub iFile i wybierz Install (wymaga AppSync Unified) albo zainstaluj go z komputera przez iTunes.',b_cydia:'Dodaj do Cydii',
+ ver:'Wersja {0} · {1} · {2} KB',b_ipa:'Pobierz aplikację (.ipa)',repo_page:'Strona repozytorium →',n_ipa:'Plik .ipa otwórz w Filza lub iFile i wybierz Install (wymaga AppSync Unified) albo zainstaluj go z komputera przez iTunes.',b_cydia:'Dodaj do Cydii',
  repo_t:'Albo dodaj nasze repozytorium w Cydii:',repo_how:'Cydia → Manage → Sources → Edit → Add, wklej adres, potem wyszukaj „Rozkład”. Dzięki temu Cydia sama poinformuje o nowych wersjach.',
  gl_start:'Jak zacząć',s1:'Zainstaluj aplikację na telefonie.',s2:'Wejdź w Kreator, znajdź swoje przystanki (autobus, tramwaj, pociąg, metro).',s3:'Dotknij „Otwórz w aplikacji Rozkład” – aplikacja sama pobierze rozkład i dalej działa bez internetu.',
  b_wiz:'Kreator przystanków →',
@@ -130,7 +130,7 @@ pl:{title:'Rozkład – rozkład jazdy offline dla iOS 6',sub:'rozkład jazdy of
 en:{title:'Rozkład – offline timetable for iOS 6',sub:'offline timetable for iOS 6',
  lead:'The Warsaw timetable in your pocket, without internet: buses, trams, trains and metro. A free app for iPhone and iPod touch running iOS 6.',
  gl_dl:'Download',soon:'The first version of the app will be published here soon.',
- ver:'Version {0} · {1} · {2} KB',b_ipa:'Download the app (.ipa)',n_ipa:'Open the .ipa in Filza or iFile and choose Install (needs AppSync Unified), or install it from a computer with iTunes.',b_cydia:'Add to Cydia',
+ ver:'Version {0} · {1} · {2} KB',b_ipa:'Download the app (.ipa)',repo_page:'Repository page →',n_ipa:'Open the .ipa in Filza or iFile and choose Install (needs AppSync Unified), or install it from a computer with iTunes.',b_cydia:'Add to Cydia',
  repo_t:'Or add our repository in Cydia:',repo_how:'Cydia → Manage → Sources → Edit → Add, paste the address, then search for “Rozkład”. This way Cydia will tell you about new versions.',
  gl_start:'Getting started',s1:'Install the app on your phone.',s2:'Open the Creator and find your stops (bus, tram, train, metro).',s3:'Tap “Open in the Rozkład app” – the app downloads the timetable itself and keeps working without internet.',
  b_wiz:'Stop creator →',
@@ -141,7 +141,7 @@ en:{title:'Rozkład – offline timetable for iOS 6',sub:'offline timetable for 
 ru:{title:'Rozkład – расписание офлайн для iOS 6',sub:'расписание офлайн для iOS 6',
  lead:'Расписание Варшавы в кармане, без интернета: автобусы, трамваи, поезда и метро. Бесплатное приложение для iPhone и iPod touch с iOS 6.',
  gl_dl:'Скачать',soon:'Первая версия приложения скоро появится здесь.',
- ver:'Версия {0} · {1} · {2} КБ',b_ipa:'Скачать приложение (.ipa)',n_ipa:'Откройте .ipa в Filza или iFile и выберите Install (нужен AppSync Unified) либо установите его с компьютера через iTunes.',b_cydia:'Добавить в Cydia',
+ ver:'Версия {0} · {1} · {2} КБ',b_ipa:'Скачать приложение (.ipa)',repo_page:'Страница репозитория →',n_ipa:'Откройте .ipa в Filza или iFile и выберите Install (нужен AppSync Unified) либо установите его с компьютера через iTunes.',b_cydia:'Добавить в Cydia',
  repo_t:'Или добавьте наш репозиторий в Cydia:',repo_how:'Cydia → Manage → Sources → Edit → Add, вставьте адрес, затем найдите «Rozkład». Так Cydia сама сообщит о новых версиях.',
  gl_start:'Как начать',s1:'Установите приложение на телефон.',s2:'Откройте Мастер и найдите свои остановки (автобус, трамвай, поезд, метро).',s3:'Нажмите «Открыть в приложении Rozkład» – приложение само загрузит расписание и дальше работает без интернета.',
  b_wiz:'Мастер остановок →',
@@ -150,6 +150,7 @@ ru:{title:'Rozkład – расписание офлайн для iOS 6',sub:'р�
  req2:'Проверено на iOS 6.1.3. На более новых системах (например, iOS 8) есть известные проблемы.',
  foot:'Данные расписания: ZTM Warszawa (GTFS), предоставляет mkuran.pl. Приложение неофициальное и не связано с ZTM Warszawa. Расписание может быть неактуальным – проверяйте дату действия.',src:'Исходный код'}
 };
+var CYDIA='https://slam0.github.io/cydia/';   /* osobne repozytorium Cydii na wszystkie projekty */
 var LANG='pl',INFO=null;
 function t(k,a){var s=(I[LANG]&&I[LANG][k])||I.pl[k]||k,i;
   if(a)for(i=0;i<a.length;i++)s=s.split('{'+i+'}').join(a[i]);
@@ -166,8 +167,10 @@ function paint(){
   $('ipabox').hidden=!(has&&INFO.ipa);
   if(has){
     $('ver').textContent=t('ver',[INFO.version,INFO.date,Math.round((INFO.ipa?INFO.ipa_size:INFO.size)/1024)]);
-    $('repo').value=INFO.repo;
-    $('cyd').href='cydia://url/https://cydia.saurik.com/api/share#?source='+encodeURIComponent(INFO.repo)}}
+  }
+  $('repo').value=CYDIA;
+  $('repopage').href=CYDIA;
+  $('cyd').href='cydia://url/https://cydia.saurik.com/api/share#?source='+encodeURIComponent(CYDIA)}
 function setLang(l){
   var els=document.querySelectorAll('[data-t]'),i,h='',L=['pl','en','ru'];
   LANG=l;
