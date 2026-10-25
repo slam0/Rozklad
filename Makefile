@@ -1,4 +1,4 @@
-# Rozkład - aplikacja na iOS 6 (jailbreak), budowana w Theosie.
+# Waluty - przelicznik walut na iOS 6 (jailbreak), budowany w Theosie.
 #
 # SDKVER: wersja SDK iOS, z którą kompilujemy. Skrypt build.sh sam wybiera
 # najstarsze dostępne. Ręcznie: make package SDKVER=9.3
@@ -11,15 +11,15 @@ export TARGET = iphone:clang:$(SDKVER):6.0
 # stary dpkg z iOS 6 nie czyta nowszej kompresji niż gzip
 export THEOS_PLATFORM_DEB_COMPRESSION_TYPE = gzip
 
-INSTALL_TARGET_PROCESSES = Rozklad
+INSTALL_TARGET_PROCESSES = Waluty
 
 include $(THEOS)/makefiles/common.mk
 
-APPLICATION_NAME = Rozklad
+APPLICATION_NAME = Waluty
 
-Rozklad_FILES = main.m AppDelegate.m RZSchedule.m RZViews.m RZTabController.m RZPickerController.m RZWifiController.m RZImportController.m RZSettingsController.m RZStopController.m RZDayController.m RZLang.m rz_core.c rz_http.c rz_import.c rz_libc.c
-Rozklad_FRAMEWORKS = UIKit Foundation CoreGraphics QuartzCore
-Rozklad_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-unused-command-line-argument
+Waluty_FILES = main.m AppDelegate.m WLStore.m WLTheme.m WLViews.m WLLang.m WLCurrencies.m WLRates.m WLCrash.m WLConverterController.m WLRatesController.m WLPickerController.m WLSettingsController.m wl_core.c wl_libc.c
+Waluty_FRAMEWORKS = UIKit Foundation CoreGraphics QuartzCore
+Waluty_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-unused-command-line-argument
 
 include $(THEOS_MAKE_PATH)/application.mk
 

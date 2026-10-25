@@ -1,11 +1,11 @@
-Package: com.nazar0vsky.rozklad
-Name: Rozkład
+Package: com.nazar0vsky.waluty
+Name: Waluty
 Depends: firmware (>= 6.0)
-Version: 1.2.0
+Version: 1.0.2
 Architecture: iphoneos-arm
-Description: Rozklad jazdy offline: autobus, tramwaj, pociag, metro
+Description: Przelicznik walut z aktualnymi kursami z internetu (ER-API i NBP), zapisanymi do pracy bez sieci
 Maintainer: nazar0vsky-slam0
 Author: nazar0vsky-slam0
 Section: Utilities
-Icon: https://slam0.github.io/Rozklad/icon.png
-Depiction: https://slam0.github.io/Rozklad/
+Icon: https://slam0.github.io/cydia/icons/waluty.png
+Depiction: https://github.com/slam0/Waluty

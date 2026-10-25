@@ -1,191 +1,217 @@
-/* Test logiki rozkładu: clang -I.. ../rz_core.c core_test.c -o core_test && ./core_test */
-#include "../rz_core.h"
+/* Testy logiki z wl_core.c. Uruchomienie: gcc -Wall wl_core.c tests/core_test.c -o core_test && ./core_test */
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
+#include "../wl_core.h"
 
-static int fails = 0;
-#define CHECK(cond, msg) do { if (!(cond)) { printf("BŁĄD: %s\n", msg); fails++; } } while (0)
+static int fails = 0, checks = 0;
+#define CHECK(c) do { checks++; if (!(c)) { fails++; printf("BŁĄD (linia %d): %s\n", __LINE__, #c); } } while (0)
+#define NEAR(a, b, tol) do { checks++; double _a = (a), _b = (b); if (fabs(_a - _b) > (tol) * (fabs(_b) > 1 ? fabs(_b) : 1)) { fails++; printf("BŁĄD (linia %d): %s = %.12g, oczekiwano %.12g\n", __LINE__, #a, _a, _b); } } while (0)
 
-static void expect_eta(int m, const char *want)
-{
-    char b[64];
-    rz_eta(m, b, sizeof b);
-    if (strcmp(b, want) != 0) { printf("BŁĄD eta(%d): '%s' zamiast '%s'\n", m, b, want); fails++; }
-}
+static const char *NBP =
+"[{\"table\":\"A\",\"no\":\"205/A/NBP/2024\",\"effectiveDate\":\"2024-10-21\",\"rates\":["
+"{\"currency\":\"bat (Tajlandia)\",\"code\":\"THB\",\"mid\":0.1166},"
+"{\"currency\":\"dolar amerykański\",\"code\":\"USD\",\"mid\":3.9822},"
+"{\"currency\":\"dolar australijski\",\"code\":\"AUD\",\"mid\":2.6531},"
+"{\"currency\":\"euro\",\"code\":\"EUR\",\"mid\":4.3000},"
+"{\"currency\":\"frank szwajcarski\",\"code\":\"CHF\",\"mid\":4.5913},"
+"{\"currency\":\"funt szterling\",\"code\":\"GBP\",\"mid\":5.1650},"
+"{\"currency\":\"jen (Japonia)\",\"code\":\"JPY\",\"mid\":0.026230},"
+"{\"currency\":\"SDR (MFW)\",\"code\":\"XDR\",\"mid\":5.3901},"
+"{\"currency\":\"z \\\"cudzys\\u0142owem\\\"\",\"code\":\"CZK\",\"mid\":1.7e-1}"
+"]}]";
+
+static const char *ER =
+"{\"result\":\"success\",\"provider\":\"https://www.exchangerate-api.com\","
+"\"documentation\":\"https://www.exchangerate-api.com/docs/free\","
+"\"terms_of_use\":\"https://www.exchangerate-api.com/terms\","
+"\"time_last_update_unix\":1729468951,\"time_last_update_utc\":\"Mon, 21 Oct 2024 00:02:31 +0000\","
+"\"time_next_update_unix\":1729556441,\"time_next_update_utc\":\"Tue, 22 Oct 2024 00:20:41 +0000\","
+"\"time_eol_unix\":0,\"base_code\":\"PLN\",\"rates\":{\"PLN\":1,\"AED\":0.9222,\"EUR\":0.2326,"
+"\"USD\":0.2511,\"GBP\":0.1936,\"JPY\":38.12,\"CHF\":0.2178,\"XOF\":152.5}}";
 
 int main(void)
 {
-    /* --- teksty --- */
-    expect_eta(0, "odjeżdża teraz");   expect_eta(-3, "odjeżdża teraz");
-    expect_eta(1, "za 1 minutę");      expect_eta(2, "za 2 minuty");
-    expect_eta(5, "za 5 minut");       expect_eta(11, "za 11 minut");
-    expect_eta(12, "za 12 minut");     expect_eta(14, "za 14 minut");
-    expect_eta(22, "za 22 minuty");    expect_eta(45, "za 45 minut");
-    expect_eta(59, "za 59 minut");     expect_eta(60, "za 1 godz.");
-    expect_eta(65, "za 1 godz. 5 min"); expect_eta(125, "za 2 godz. 5 min");
+    wl_table t, u;
+    double v;
+    char buf[64];
+    int n;
 
-    char b[64];
-    rz_clock(10 * 60 + 44, b, sizeof b);   CHECK(strcmp(b, "10:44") == 0, "clock 10:44");
-    rz_clock(25 * 60 + 10, b, sizeof b);   CHECK(strcmp(b, "01:10") == 0, "clock po północy");
+    /* --- NBP --- */
+    n = wl_parse_nbp(NBP, &t);
+    CHECK(n == 10);                              /* 9 walut + PLN */
+    CHECK(t.source == WL_SRC_NBP);
+    CHECK(strcmp(t.date, "2024-10-21") == 0);
+    CHECK(t.updated == 1729468800L);
+    CHECK(wl_has(&t, "PLN") && wl_has(&t, "THB") && wl_has(&t, "CZK"));
+    CHECK(!wl_has(&t, "XYZ") && !wl_has(&t, "EU") && !wl_has(&t, "EURO"));
+    NEAR(wl_find(&t, "EUR")->per_pln, 1.0 / 4.3, 1e-12);
+    NEAR(wl_find(&t, "CZK")->per_pln, 1.0 / 0.17, 1e-12);
+    CHECK(wl_convert(&t, 100.0, "EUR", "PLN", &v)); NEAR(v, 430.0, 1e-9);
+    CHECK(wl_convert(&t, 100.0, "PLN", "EUR", &v)); NEAR(v, 100.0 / 4.3, 1e-9);
+    CHECK(wl_convert(&t, 10.0, "USD", "EUR", &v)); NEAR(v, 10.0 * 3.9822 / 4.3, 1e-9);
+    CHECK(wl_convert(&t, 10.0, "JPY", "JPY", &v)); NEAR(v, 10.0, 1e-12);
+    CHECK(!wl_convert(&t, 1.0, "EUR", "XYZ", &v));
+    /* posortowane */
+    for (int i = 1; i < t.count; i++) CHECK(strcmp(t.rates[i - 1].code, t.rates[i].code) < 0);
 
-    rz_duration((20L * 1440 + 13 * 60 + 24) * 60, b, sizeof b);
-    CHECK(strcmp(b, "20 dni 13 godz. 24 min") == 0, "duration 20 dni");
-    rz_duration((1L * 1440 + 0 * 60 + 5) * 60, b, sizeof b);
-    CHECK(strcmp(b, "1 dzień 0 godz. 5 min") == 0, "duration 1 dzień");
-    rz_duration((13L * 60 + 24) * 60, b, sizeof b);
-    CHECK(strcmp(b, "13 godz. 24 min") == 0, "duration godziny");
-    rz_duration(7 * 60, b, sizeof b);
-    CHECK(strcmp(b, "7 min") == 0, "duration minuty");
+    /* złe dane */
+    CHECK(wl_parse_nbp("", &t) == -1);
+    CHECK(wl_parse_nbp("<html>błąd 404</html>", &t) == -1);
+    CHECK(wl_parse_nbp("[]", &t) == -1);
+    CHECK(wl_parse_nbp("[{\"table\":\"A\",\"rates\":[{\"code\":\"EUR\",\"mid\":4.3}", &t) == -1);   /* ucięte */
+    CHECK(wl_parse_nbp("404 NotFound - Not Found - Brak danych", &t) == -1);
+    CHECK(wl_parse_nbp(0, &t) == -1);
+    /* uszkodzony element w tablicy nie może zawiesić czytnika (kiedyś pętla bez końca) */
+    CHECK(wl_parse_nbp("[{\"effectiveDate\":\"2024-10-21\",\"rates\":[{\"code\":\"EUR\",\"mid\":4.3}\xef{\"code\":\"USD\",\"mid\":4}]}]", &t) == -1);
+    CHECK(wl_parse_nbp("[{\"rates\":[}]}]", &t) == -1);
+    CHECK(wl_parse_erapi("{\"result\":\"success\",\"rates\":{\"PLN\":1,\"EUR\":}}", &t) == -1);
 
-    /* --- angielski i rosyjski --- */
-    rz_set_lang(1);
-    expect_eta(0, "departing now");   expect_eta(1, "in 1 minute");
-    expect_eta(5, "in 5 minutes");    expect_eta(65, "in 1 h 5 min");
-    expect_eta(120, "in 2 h");
-    rz_duration((1L * 1440 + 2 * 60 + 5) * 60, b, sizeof b);
-    CHECK(strcmp(b, "1 day 2 h 5 min") == 0, "duration en 1 day");
-    rz_duration((20L * 1440 + 13 * 60 + 24) * 60, b, sizeof b);
-    CHECK(strcmp(b, "20 days 13 h 24 min") == 0, "duration en days");
-    rz_set_lang(2);
-    expect_eta(0, "отправляется сейчас");
-    expect_eta(1, "через 1 минуту");   expect_eta(2, "через 2 минуты");
-    expect_eta(5, "через 5 минут");    expect_eta(11, "через 11 минут");
-    expect_eta(12, "через 12 минут");  expect_eta(14, "через 14 минут");
-    expect_eta(21, "через 21 минуту"); expect_eta(22, "через 22 минуты");
-    expect_eta(25, "через 25 минут");  expect_eta(60, "через 1 ч");
-    expect_eta(65, "через 1 ч 5 мин");
-    rz_duration((21L * 1440 + 13 * 60 + 24) * 60, b, sizeof b);
-    CHECK(strcmp(b, "21 день 13 ч 24 мин") == 0, "duration ru 21 день");
-    rz_duration((3L * 1440 + 0 * 60 + 5) * 60, b, sizeof b);
-    CHECK(strcmp(b, "3 дня 0 ч 5 мин") == 0, "duration ru 3 дня");
-    rz_duration((11L * 1440) * 60, b, sizeof b);
-    CHECK(strcmp(b, "11 дней 0 ч 0 мин") == 0, "duration ru 11 дней");
-    rz_set_lang(0);
+    /* --- ER-API --- */
+    n = wl_parse_erapi(ER, &u);
+    CHECK(n == 8);
+    CHECK(u.source == WL_SRC_ERAPI);
+    CHECK(u.updated == 1729468951L);
+    CHECK(strcmp(u.date, "2024-10-21") == 0);
+    NEAR(wl_find(&u, "PLN")->per_pln, 1.0, 1e-12);
+    NEAR(wl_find(&u, "EUR")->per_pln, 0.2326, 1e-12);
+    CHECK(wl_convert(&u, 100.0, "EUR", "USD", &v)); NEAR(v, 100.0 * 0.2511 / 0.2326, 1e-9);
+    CHECK(wl_convert(&u, 1000.0, "JPY", "PLN", &v)); NEAR(v, 1000.0 / 38.12, 1e-9);
 
-    CHECK(rz_parse_date("20261231") == 20261231, "parse date");
-    CHECK(rz_parse_date("") == 0 && rz_parse_date("2026-12-31") == 0 && rz_parse_date(NULL) == 0, "parse date zły");
-
-    /* --- kalendarz --- */
-    int32_t add[] = { 20261121 }, rem[] = { 20261111 };
-    RZService svc[2];
-    memset(svc, 0, sizeof svc);
-    /* 0: pon-pt od 1.10 do 31.12, święto 11.11 wyłączone, sobota 21.11 dodana */
-    svc[0].start = 20261001; svc[0].end = 20261231;
-    svc[0].days[0] = svc[0].days[1] = svc[0].days[2] = svc[0].days[3] = svc[0].days[4] = 1;
-    svc[0].add = add; svc[0].nadd = 1; svc[0].rem = rem; svc[0].nrem = 1;
-    /* 1: bez dat (jak pusty calendar.txt) - nigdy nie jedzie w dni tygodnia */
-    svc[1].days[0] = 1;
-
-    CHECK(rz_service_runs(&svc[0], 20261023, 4) == 1, "piątek jedzie");
-    CHECK(rz_service_runs(&svc[0], 20261024, 5) == 0, "sobota nie jedzie");
-    CHECK(rz_service_runs(&svc[0], 20261111, 2) == 0, "11.11 wyjątek: nie jedzie");
-    CHECK(rz_service_runs(&svc[0], 20261121, 5) == 1, "21.11 wyjątek: jedzie");
-    CHECK(rz_service_runs(&svc[0], 20260930, 2) == 0, "przed początkiem");
-    CHECK(rz_service_runs(&svc[0], 20270105, 1) == 0, "po końcu");
-    CHECK(rz_service_runs(&svc[1], 20261026, 0) == 0, "brak dat = nie jedzie");
-
-    /* --- wyszukiwanie odjazdów --- */
-    /* "dziś" = piątek 23.10.2026, 10:00 (600 min); wczoraj czwartek, jutro sobota */
-    int32_t ymd[3] = { 20261022, 20261023, 20261024 };
-    int wd[3] = { 3, 4, 5 };
-    RZDep deps[] = {
-        { 605,  0, 1, 1, 'b' },   /* 10:05 dziś, linia 1 */
-        { 617,  0, 2, 1, 'b' },   /* 10:17 */
-        { 640,  0, 1, 1, 'b' },   /* 10:40 */
-        { 1510, 0, 3, 2, 'b' },   /* 25:10 wczoraj = dziś 01:10 (przeszłość - pominąć o 10:00) */
-        { 605,  0, 9, 1, 't' },   /* inny rodzaj - pominąć */
-        { 700,  1, 4, 1, 'b' },   /* kalendarz 1 nigdy nie jedzie */
-        { 1330, 0, 5, 1, 'b' },   /* 22:10 dziś - poza horyzontem 12 h? 600+720=1320 -> poza */
-        { 1510, 0, 6, 2, 'b' },   /* jutro, ale o 25:10 dnia kursowania = pozniej */
-    };
-    RZNext out[8];
-    int n = rz_next(deps, 8, svc, 2, ymd, wd, 600, 720, 'b', out, 5);
-    CHECK(n == 3, "3 odjazdy w 12 h");
-    CHECK(n >= 1 && out[0].time == 605 && out[0].line == 1, "pierwszy 10:05");
-    CHECK(n >= 2 && out[1].time == 617 && out[1].line == 2, "drugi 10:17");
-    CHECK(n >= 3 && out[2].time == 640, "trzeci 10:40");
-
-    /* limit 2 zostawia dwa najbliższe */
-    n = rz_next(deps, 8, svc, 2, ymd, wd, 600, 720, 'b', out, 2);
-    CHECK(n == 2 && out[0].time == 605 && out[1].time == 617, "limit 2");
-
-    /* nocny kurs z wczoraj: 00:30 dziś (wczoraj 24:30) widoczny o 00:10 */
-    RZDep night[] = { { 1470, 0, 7, 3, 'b' } };
-    n = rz_next(night, 1, svc, 2, ymd, wd, 10, 720, 'b', out, 5);
-    CHECK(n == 1 && out[0].time == 30 && out[0].line == 7, "kurs nocny z wczoraj");
-
-    /* wczoraj = sobota: kalendarz 0 nie jedzie, więc kurs nocny znika */
-    int wd2[3] = { 5, 6, 0 };
-    n = rz_next(night, 1, svc, 2, ymd, wd2, 10, 720, 'b', out, 5);
-    CHECK(n == 0, "kurs nocny, gdy wczoraj nie jeździł");
-
-    /* inny rodzaj */
-    n = rz_next(deps, 8, svc, 2, ymd, wd, 600, 720, 't', out, 5);
-    CHECK(n == 1 && out[0].line == 9, "tramwaj");
-    n = rz_next(deps, 8, svc, 2, ymd, wd, 600, 720, 'm', out, 5);
-    CHECK(n == 0, "brak metra");
-
-    /* pociągi: doba do przodu */
-    n = rz_next(deps, 8, svc, 2, ymd, wd, 600, 1440, 'b', out, 10);
-    CHECK(n == 6, "doba: 3 poranne + 22:10 + dwa kursy 25:10 dnia dzisiejszego");
-    CHECK(n == 6 && out[3].time == 1330 && out[4].time == 1510 && out[5].time == 1510, "doba: kolejnosc");
-
-
-    /* --- cały dzień (rz_list) --- */
-    /* ten sam piątek 23.10.2026: okno 0..1440 */
-    n = rz_list(deps, 8, svc, 2, ymd, wd, 0, 1440, 'b', NULL, 0);
-    CHECK(n == 6, "rz_list zlicza: dwa kursy nocne z wczoraj (01:10) + 4 odjazdy dziś");
+    /* inna waluta bazowa: wynik taki sam */
     {
-        RZNext all[16];
-        n = rz_list(deps, 8, svc, 2, ymd, wd, 0, 1440, 'b', all, 16);
-        /* oczekiwane: dwa kursy nocne 01:10 (linie 3 i 6, wczoraj 25:10), 10:05, 10:17, 10:40, 22:10;
-           kursy 25:10 z dziś wchodzą dopiero do jutrzejszego okna (>= 1440) */
-        CHECK(n == 6, "rz_list: 6 odjazdów w dobie 0..1440");
-        CHECK(n == 6 && all[0].time == 70 && all[0].line == 3 && all[1].time == 70 && all[1].line == 6, "rz_list: najpierw kursy nocne 01:10, po linii");
-        CHECK(n == 6 && all[2].time == 605 && all[3].time == 617 && all[4].time == 640, "rz_list: poranne w kolejności");
-        CHECK(n == 6 && all[5].time == 1330, "rz_list: ostatni 22:10");
-        /* okno od 10:10 */
-        n = rz_list(deps, 8, svc, 2, ymd, wd, 610, 1440, 'b', all, 16);
-        CHECK(n == 3 && all[0].time == 617 && all[2].time == 1330, "rz_list: okno od 10:10");
-        /* obcięcie do cap */
-        n = rz_list(deps, 8, svc, 2, ymd, wd, 0, 1440, 'b', all, 2);
-        CHECK(n == 2, "rz_list: cap 2");
-        /* inny rodzaj i puste okno */
-        n = rz_list(deps, 8, svc, 2, ymd, wd, 0, 1440, 't', all, 16);
-        CHECK(n == 1 && all[0].line == 9, "rz_list: tramwaj");
-        n = rz_list(deps, 8, svc, 2, ymd, wd, 700, 700, 'b', all, 16);
-        CHECK(n == 0, "rz_list: puste okno");
-        /* sobota: kalendarz 0 nie jedzie, zostają tylko kursy nocne z piątku (25:10 = sobota 01:10) */
-        {
-            int32_t ymd3[3] = { 20261023, 20261024, 20261025 };
-            int wd3[3] = { 4, 5, 6 };
-            n = rz_list(deps, 8, svc, 2, ymd3, wd3, 0, 1440, 'b', all, 16);
-            CHECK(n == 2 && all[0].time == 70 && all[1].time == 70, "rz_list: sobota tylko kursy nocne z piątku");
-        }
+        const char *ER_EUR = "{\"result\":\"success\",\"time_last_update_unix\":1729468951,\"base_code\":\"EUR\","
+            "\"rates\":{\"EUR\":1,\"PLN\":4.2992,\"USD\":1.0795,\"GBP\":0.8323,\"JPY\":163.9,\"CHF\":0.9364}}";
+        wl_table w;
+        CHECK(wl_parse_erapi(ER_EUR, &w) == 6);
+        CHECK(wl_convert(&w, 1.0, "EUR", "PLN", &v)); NEAR(v, 4.2992, 1e-9);
+        CHECK(wl_convert(&w, 100.0, "PLN", "EUR", &v)); NEAR(v, 100.0 / 4.2992, 1e-9);
     }
 
-    /* duża doba: 1000 odjazdów w losowej kolejności musi wyjść posortowane */
+    CHECK(wl_parse_erapi("{\"result\":\"error\",\"error-type\":\"quota-reached\"}", &u) == -1);
+    CHECK(wl_parse_erapi("Error 1015 - rate limited", &u) == -1);
+    CHECK(wl_parse_erapi("{\"result\":\"success\",\"rates\":{\"EUR\":0.2}}", &u) == -1);   /* brak PLN */
+    CHECK(wl_parse_erapi("", &u) == -1);
+
+    /* --- zapis i odczyt --- */
     {
-        static RZDep many[1000];
-        static RZNext big[1100];
-        unsigned seed = 12345u;
-        int i, sorted = 1;
-        for (i = 0; i < 1000; i++) {
-            seed = seed * 1103515245u + 12345u;
-            many[i].minute = (int32_t)((seed >> 8) % 1400);
-            many[i].svc = 0;
-            many[i].line = (uint16_t)(i % 7);
-            many[i].head = 0;
-            many[i].kind = 'b';
+        char text[8192];
+        wl_table r;
+        wl_parse_nbp(NBP, &t);
+        t.fetched = 1729500000L;
+        n = wl_serialize(&t, text, sizeof text);
+        CHECK(n > 0 && (int)strlen(text) == n);
+        CHECK(strncmp(text, "WL1\n", 4) == 0);
+        CHECK(wl_deserialize(text, &r) == t.count);
+        CHECK(r.source == WL_SRC_NBP && r.fetched == 1729500000L && r.updated == t.updated);
+        CHECK(strcmp(r.date, "2024-10-21") == 0);
+        for (int i = 0; i < t.count; i++) {
+            CHECK(strcmp(r.rates[i].code, t.rates[i].code) == 0);
+            NEAR(r.rates[i].per_pln, t.rates[i].per_pln, 1e-10);
         }
-        n = rz_list(many, 1000, svc, 2, ymd, wd, 0, 1440, 'b', NULL, 0);
-        CHECK(n == 1000, "rz_list: zliczono 1000");
-        n = rz_list(many, 1000, svc, 2, ymd, wd, 0, 1440, 'b', big, 1100);
-        for (i = 1; i < n; i++) if (big[i - 1].time > big[i].time) sorted = 0;
-        CHECK(n == 1000 && sorted, "rz_list: 1000 odjazdów posortowane");
+        CHECK(wl_serialize(&t, text, 20) == -1);       /* za mały bufor */
+        CHECK(wl_deserialize("śmieci", &r) == -1);
+        CHECK(wl_deserialize("WL1\nS 1\n", &r) == -1);
+        CHECK(wl_deserialize(0, &r) == -1);
+        /* bardzo małe i duże kursy */
+        wl_table_clear(&r);
+        r.source = 1;
+        wl_parse_erapi("{\"result\":\"success\",\"rates\":{\"PLN\":1,\"IDR\":3950.123456,\"XAU\":0.000234567,\"AAA\":2,\"BBB\":3,\"CCC\":4}}", &r);
+        n = wl_serialize(&r, text, sizeof text);
+        CHECK(n > 0);
+        wl_table q;
+        CHECK(wl_deserialize(text, &q) == r.count);
+        NEAR(wl_find(&q, "IDR")->per_pln, 3950.123456, 1e-10);
+        NEAR(wl_find(&q, "XAU")->per_pln, 0.000234567, 1e-9);
     }
 
-    if (fails) { printf("\n%d błędów\n", fails); return 1; }
-    printf("OK: wszystkie testy logiki przeszły\n");
-    return 0;
+    /* --- kwoty --- */
+    CHECK(wl_parse_amount("100", &v) && v == 100.0);
+    CHECK(wl_parse_amount("100,5", &v)); NEAR(v, 100.5, 1e-12);
+    CHECK(wl_parse_amount("100.5", &v)); NEAR(v, 100.5, 1e-12);
+    CHECK(wl_parse_amount("1 234,56", &v)); NEAR(v, 1234.56, 1e-12);
+    CHECK(wl_parse_amount("1\xC2\xA0" "234,56", &v)); NEAR(v, 1234.56, 1e-12);
+    CHECK(wl_parse_amount("1,234.56", &v)); NEAR(v, 1234.56, 1e-12);
+    CHECK(wl_parse_amount("1.234,56", &v)); NEAR(v, 1234.56, 1e-12);
+    CHECK(wl_parse_amount("1,234,567", &v)); NEAR(v, 1234567.0, 1e-12);
+    CHECK(wl_parse_amount(",5", &v)); NEAR(v, 0.5, 1e-12);
+    CHECK(wl_parse_amount(".25", &v)); NEAR(v, 0.25, 1e-12);
+    CHECK(wl_parse_amount("5.", &v)); NEAR(v, 5.0, 1e-12);
+    CHECK(wl_parse_amount("-12,5", &v)); NEAR(v, -12.5, 1e-12);
+    CHECK(wl_parse_amount("0,00001", &v)); NEAR(v, 0.00001, 1e-12);
+    CHECK(wl_parse_amount("007", &v) && v == 7.0);
+    CHECK(!wl_parse_amount("", &v));
+    CHECK(!wl_parse_amount("abc", &v));
+    CHECK(!wl_parse_amount("12abc", &v));
+    CHECK(!wl_parse_amount(",", &v));
+    CHECK(!wl_parse_amount("-", &v));
+    CHECK(!wl_parse_amount("1e5", &v));
+    CHECK(!wl_parse_amount("99999999999999999999", &v));
+    CHECK(!wl_parse_amount(0, &v));
+
+    #define FMT(x, mn, mx, ds, gs, expect) do { int _n = wl_format_number((x), (mn), (mx), (ds), (gs), buf, sizeof buf); \
+        CHECK(_n >= 0 && strcmp(buf, (expect)) == 0); if (strcmp(buf, (expect))) printf("   dostałem '%s', oczekiwano '%s'\n", buf, (expect)); } while (0)
+    FMT(1234.5, 2, 2, ',', ' ', "1 234,50");
+    FMT(1234567.891, 2, 2, ',', ' ', "1 234 567,89");
+    FMT(1234567.891, 2, 2, '.', ',', "1,234,567.89");
+    FMT(0.0, 2, 2, ',', ' ', "0,00");
+    FMT(0.0, 0, 2, ',', ' ', "0");
+    FMT(999.999, 2, 2, ',', ' ', "1 000,00");               /* przeniesienie przy zaokrągleniu */
+    FMT(0.995, 2, 2, ',', 0, "1,00");
+    FMT(-5.5, 2, 4, ',', 0, "-5,50");
+    FMT(-0.001, 2, 2, ',', 0, "0,00");                       /* bez "-0,00" */
+    FMT(12.3456, 0, 4, ',', 0, "12,3456");
+    FMT(12.3, 0, 4, ',', 0, "12,3");
+    FMT(12.0, 0, 4, ',', 0, "12");
+    FMT(100.0, 2, 2, ',', ' ', "100,00");
+    FMT(1000.0, 2, 2, ',', ' ', "1 000,00");
+    FMT(999999999999999.0, 0, 0, ',', ' ', "999 999 999 999 999");
+    FMT(1000000000.0, 2, 2, ',', ' ', "1 000 000 000,00");
+    FMT(1999999999.5, 1, 1, ',', ' ', "1 999 999 999,5");
+    FMT(123456789012.0, 2, 2, ',', ' ', "123 456 789 012,00");
+    FMT(0.00001234, 2, 8, ',', 0, "0,00001234");
+    CHECK(wl_format_number(1e15, 2, 2, ',', ' ', buf, sizeof buf) == -1);
+    CHECK(wl_format_number(1234.5, 2, 2, ',', ' ', buf, 5) == -1);       /* za mały bufor */
+
+    CHECK(wl_money_decimals(1234.5) == 2 && wl_money_decimals(1.0) == 2 && wl_money_decimals(0.0) == 2);
+    CHECK(wl_money_decimals(0.5) == 3 && wl_money_decimals(0.05) == 4 && wl_money_decimals(0.0005) == 6);
+    CHECK(wl_rate_decimals(4000.0) == 2 && wl_rate_decimals(38.12) == 3 && wl_rate_decimals(4.3) == 4);
+    CHECK(wl_rate_decimals(0.2326) == 4 && wl_rate_decimals(0.0234) == 5 && wl_rate_decimals(0.000234) == 7);
+    {
+        /* typowy wynik: 100 EUR -> USD */
+        wl_parse_erapi(ER, &u);
+        wl_convert(&u, 100.0, "EUR", "USD", &v);
+        n = wl_format_number(v, 2, wl_money_decimals(v), ',', ' ', buf, sizeof buf);
+        CHECK(n > 0 && strcmp(buf, "107,95") == 0);
+    }
+
+    /* --- daty --- */
+    CHECK(wl_date_to_unix("1970-01-01") == 0);
+    CHECK(wl_date_to_unix("2024-10-21") == 1729468800L);
+    CHECK(wl_date_to_unix("2024-02-29") == 1709164800L);
+    CHECK(wl_date_to_unix("2038-01-01") == -1);   /* poza zakresem 32-bitowego czasu */
+    CHECK(wl_date_to_unix("2024-13-01") == -1);
+    CHECK(wl_date_to_unix("2024/10/21") == -1);
+    CHECK(wl_date_to_unix("abc") == -1);
+    CHECK(wl_date_to_unix("2024-1-21") == -1);
+    wl_unix_to_date(1729468951L, buf); CHECK(strcmp(buf, "2024-10-21") == 0);
+    wl_unix_to_date(1709164800L, buf); CHECK(strcmp(buf, "2024-02-29") == 0);
+    wl_unix_to_date(0L, buf); CHECK(strcmp(buf, "1970-01-01") == 0);
+    wl_unix_to_date(951782400L, buf); CHECK(strcmp(buf, "2000-02-29") == 0);
+    wl_unix_to_date(-5L, buf); CHECK(strcmp(buf, "1970-01-01") == 0);
+    for (long d = 0; d < 24000; d += 37) {          /* tam i z powrotem */
+        wl_unix_to_date(d * 86400L, buf);
+        CHECK(wl_date_to_unix(buf) == d * 86400L);
+    }
+    CHECK(wl_age_days(1000000L, 0) == -1);
+    CHECK(wl_age_days(1729468800L + 3 * 86400L + 5, 1729468800L) == 3);
+    CHECK(wl_age_days(100L, 200L) == 0);
+
+    /* --- odmiana --- */
+    CHECK(wl_plural(0, 1) == 0 && wl_plural(0, 2) == 1 && wl_plural(0, 5) == 2 && wl_plural(0, 12) == 2 && wl_plural(0, 22) == 1);
+    CHECK(wl_plural(1, 1) == 0 && wl_plural(1, 2) == 2 && wl_plural(1, 0) == 2);
+    CHECK(wl_plural(2, 1) == 0 && wl_plural(2, 21) == 0 && wl_plural(2, 11) == 2 && wl_plural(2, 3) == 1 && wl_plural(2, 25) == 2);
+
+    printf("%s: %d sprawdzeń, %d błędów\n", fails ? "NIE ZDAŁO" : "OK", checks, fails);
+    return fails ? 1 : 0;
 }

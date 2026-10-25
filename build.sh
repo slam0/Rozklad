@@ -35,15 +35,6 @@ echo "==> Repozytorium: ${GITHUB_REPOSITORY:-lokalnie}, wersja kodu: ${GITHUB_SH
 echo "==> Plik control, który zobaczył budowanie:"
 grep -E '^(Package|Version|Author|Maintainer):' control || true
 
-# Na GitHubie (Actions) zmienna GITHUB_REPOSITORY ma postać "nazwa/repozytorium".
-# Z niej powstaje adres strony z rozkładem, który aplikacja otwiera w Safari.
-if [ -n "$GITHUB_REPOSITORY" ]; then
-  OWNER="$(echo "${GITHUB_REPOSITORY%%/*}" | tr 'A-Z' 'a-z')"
-  REPO="${GITHUB_REPOSITORY#*/}"
-  sed -i.bak "s|RZ_SITE_URL_PLACEHOLDER|https://${OWNER}.github.io/${REPO}/|" rz_config.h && rm -f rz_config.h.bak
-  echo "==> Adres strony w aplikacji: https://${OWNER}.github.io/${REPO}/"
-fi
-
 MAKE=make
 command -v gmake >/dev/null 2>&1 && MAKE=gmake
 
