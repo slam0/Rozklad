@@ -35,4 +35,4 @@ Rozkłady udostępnia [mkuran.pl](https://mkuran.pl).
 
 nazar0vsky (lub slam0)
 
-Aplikacja zrobiona w 95% przez Claude AI.
+Aplikacja zrobiona w 85% przez Claude AI.
