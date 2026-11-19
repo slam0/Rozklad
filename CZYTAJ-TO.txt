@@ -1,0 +1,14 @@
+Rozklad 1.2.0 - paczka do upublicznienia (tylko iOS)
+
+Zmiany wzgledem repozytorium: nowy README.md ze zrzutami ekranu (folder zrzuty), usuniete resztki Androida
+ze skryptu tools/build_pobierz.py. Kod aplikacji bez zmian.
+
+Jak wgrac:
+1. Wgraj CALA zawartosc do repozytorium slam0/Rozklad (razem z ukrytym
+   folderem .github i plikiem .gitignore), nadpisujac stare pliki.
+2. Actions -> Zbuduj aplikacje -> Run workflow (nie "Re-run all jobs").
+3. Gdy zbudowane i strona dziala: Settings -> General -> na dole
+   Danger Zone -> Change visibility -> Make public.
+
+Aplikacja nie byla testowana na prawdziwym urzadzeniu po tych zmianach
+(zmiana dotyczy tylko README i skryptu strony).

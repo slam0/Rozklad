@@ -28,29 +28,6 @@ class T(unittest.TestCase):
             self.assertTrue(os.path.exists(os.path.join(out, "pobierz", "Rozklad.ipa")))
             self.assertTrue(os.path.exists(os.path.join(out, "pobierz", "Rozklad.deb")))
 
-    def test_apk_only(self):
-        with tempfile.TemporaryDirectory() as d:
-            os.makedirs(os.path.join(d, "src"))
-            os.makedirs(os.path.join(d, "apk"))
-            open(os.path.join(d, "apk", "Rozklad.apk"), "wb").write(b"PK12345")
-            open(os.path.join(d, "apk", "android-wersja.txt"), "w").write("1.0.0\n")
-            out = os.path.join(d, "out")
-            subprocess.run([sys.executable, SCRIPT, os.path.join(d, "src"), out, "https://x.github.io/cydia", os.path.join(d, "apk")], check=True)
-            info = json.load(open(os.path.join(out, "pobierz.json")))
-            self.assertTrue(info["apk"])
-            self.assertFalse(info["ipa"])
-            self.assertEqual(info["apk_version"], "1.0.0")
-            self.assertEqual(info["apk_size"], 7)
-            self.assertTrue(os.path.exists(os.path.join(out, "pobierz", "Rozklad.apk")))
-
-    def test_apk_empty_folder_is_nothing(self):
-        with tempfile.TemporaryDirectory() as d:
-            os.makedirs(os.path.join(d, "src"))
-            os.makedirs(os.path.join(d, "apk"))
-            out = os.path.join(d, "out")
-            subprocess.run([sys.executable, SCRIPT, os.path.join(d, "src"), out, "https://x/cydia", os.path.join(d, "apk")], check=True)
-            self.assertFalse(os.path.exists(os.path.join(out, "pobierz.json")))
-
 
 if __name__ == "__main__":
     unittest.main()
