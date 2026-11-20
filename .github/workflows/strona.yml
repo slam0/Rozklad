@@ -31,11 +31,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Testy skryptów danych
-        run: python3 -m unittest discover -s tools/tests -p 'test_build_data.py' && python3 -m unittest discover -s tools/tests -p 'test_generic.py' && python3 -m unittest discover -s tools/tests -p 'test_build_all.py'
+      - name: Pobierz warsaw.zip
+        run: |
+          mkdir -p work
+          if curl -fL --retry 4 --retry-delay 10 -A "Rozklad-iOS6 (GitHub Actions)" -o work/warsaw.zip https://mkuran.pl/gtfs/warsaw.zip; then
+            echo "Pobrano warsaw.zip z mkuran.pl"
+          elif [ -f dane/warsaw.zip ]; then
+            echo "Nie udało się pobrać, używam pliku dane/warsaw.zip z repozytorium"
+            cp dane/warsaw.zip work/warsaw.zip
+          else
+            echo "Nie udało się pobrać warsaw.zip, a w repozytorium nie ma pliku dane/warsaw.zip"
+            exit 1
+          fi
+          ls -l work/warsaw.zip
 
-      - name: Pobierz dane miast i podziel na małe pliki
-        run: python3 tools/build_all.py tools/miasta.json _site work
+      - name: Testy skryptu
+        run: python3 -m unittest discover -s tools/tests -p 'test_build_data.py'
+
+      - name: Podziel dane na małe pliki
+        run: python3 tools/build_data.py work/warsaw.zip _site
 
       - name: Dodaj stronę
         run: cp -r site/. _site/
